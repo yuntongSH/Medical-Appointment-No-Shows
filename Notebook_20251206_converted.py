@@ -93,7 +93,8 @@ plot_counter = 1
 
 
 # Load the dataset
-df = pd.read_csv('Database.csv')
+# PatientId stored as string to avoid float64 precision loss
+df = pd.read_csv('Database.csv', dtype={"PatientId": "string"})
 
 print(f"Dataset shape: {df.shape}")
 print(f"\nFirst few rows:")
@@ -613,7 +614,7 @@ print("• Neighbourhood matters - geographic/socioeconomic factors at play")
 # - With probability $p$: return random value (0 with prob $q$, 1 with prob $1-q$)
 # - With probability $1-p$: return true value
 # 
-# **Privacy budget**: $\epsilon = -\ln(p \cdot q)$
+# **Privacy budget**: $\epsilon = \ln\left(\max\left(\frac{(1-p)+pq}{pq}, \frac{(1-p)+p(1-q)}{p(1-q)}\right)\right)$
 
 # In[12]:
 
@@ -621,12 +622,17 @@ print("• Neighbourhood matters - geographic/socioeconomic factors at play")
 # Create a working copy for protection
 df_protected = df.copy()
 
-# Step 1: Remove direct identifiers
+# Step 1: Remove direct identifiers (but keep PatientId for later group splitting)
 print("Step 1: Removing Direct Identifiers")
 print("="*60)
+
+# Keep PatientId separately for group-based train/test split (prevent data leakage)
+patient_ids = df_protected['PatientId'].copy()
+
 direct_identifiers = ['PatientId', 'AppointmentID']
 df_protected = df_protected.drop(columns=direct_identifiers)
 print(f"Removed columns: {direct_identifiers}")
+print(f"PatientId retained separately for group-based splitting (then discarded)")
 print(f"New shape: {df_protected.shape}")
 print(f"Remaining columns: {list(df_protected.columns)}")
 
@@ -638,9 +644,12 @@ print(f"Remaining columns: {list(df_protected.columns)}")
 print("\nStep 2: Data Cleaning")
 print("="*60)
 
-# Fix negative age
-df_protected.loc[df_protected['Age'] < 0, 'Age'] = 0
-print(f"Fixed {(df['Age'] < 0).sum()} negative age values")
+# Drop rows with negative age (keep patient_ids aligned)
+negative_age_mask = df_protected['Age'] < 0
+negative_age_count = negative_age_mask.sum()
+df_protected = df_protected[~negative_age_mask]
+patient_ids = patient_ids[~negative_age_mask]  # Keep aligned
+print(f"Dropped {negative_age_count} rows with negative age values")
 
 # Convert date columns to datetime
 
@@ -649,11 +658,28 @@ age_cap = 100
 num_capped = (df_protected['Age'] > age_cap).sum()
 df_protected.loc[df_protected['Age'] > age_cap, 'Age'] = age_cap
 print(f"Capped {num_capped} ages above {age_cap}")
-df_protected['ScheduledDay'] = pd.to_datetime(df_protected['ScheduledDay'])
-df_protected['AppointmentDay'] = pd.to_datetime(df_protected['AppointmentDay'])
+
+# Convert to datetime with UTC to handle timezone properly
+df_protected['ScheduledDay'] = pd.to_datetime(df_protected['ScheduledDay'], utc=True)
+df_protected['AppointmentDay'] = pd.to_datetime(df_protected['AppointmentDay'], utc=True)
 
 # Create temporal features BEFORE removing timestamps
-df_protected['DaysBetween'] = (df_protected['AppointmentDay'] - df_protected['ScheduledDay']).dt.days
+# Use date granularity (normalize to midnight) to avoid time-of-day issues
+# AppointmentDay is at 00:00:00Z while ScheduledDay has time-of-day
+sched_date = df_protected['ScheduledDay'].dt.normalize()
+appt_date = df_protected['AppointmentDay'].dt.normalize()
+
+# Compute DaysBetween at date granularity
+df_protected['DaysBetween'] = (appt_date - sched_date).dt.days
+
+# Handle true data errors (appointment before scheduling) - set to 0
+num_negative = (df_protected['DaysBetween'] < 0).sum()
+df_protected.loc[df_protected['DaysBetween'] < 0, 'DaysBetween'] = 0
+print(f"Fixed {num_negative} records with negative DaysBetween (appointment before scheduling)")
+
+# Note: IsSameDay would be 100% redundant with DaysBetween==0 and LeadTime_Category==0
+# So we don't create it as a separate feature
+
 df_protected['AppointmentDayOfWeek'] = df_protected['AppointmentDay'].dt.dayofweek
 df_protected['AppointmentMonth'] = df_protected['AppointmentDay'].dt.month
 df_protected['ScheduledDayOfWeek'] = df_protected['ScheduledDay'].dt.dayofweek
@@ -1671,10 +1697,21 @@ import random
 
 def epsilon_from_pq(p, q):
     """
-    Calculate epsilon (privacy budget) from p and q parameters.
-    epsilon = -ln(p*q)
+    Calculate epsilon (privacy budget) from p and q parameters for randomized response.
+    
+    For randomized response:
+    - P(out=0 | true=0) = (1-p) + p*q
+    - P(out=0 | true=1) = p*q
+    - P(out=1 | true=1) = (1-p) + p*(1-q)
+    - P(out=1 | true=0) = p*(1-q)
+    
+    epsilon = ln(max likelihood ratio)
     """
-    return -np.log(p * q)
+    a0 = (1 - p) + p * q       # P(out=0 | true=0)
+    b0 = p * q                 # P(out=0 | true=1)
+    a1 = (1 - p) + p * (1 - q) # P(out=1 | true=1)
+    b1 = p * (1 - q)           # P(out=1 | true=0)
+    return np.log(max(a0 / b0, a1 / b1))
 
 def randomized_response(value, p, q):
     """
@@ -1710,7 +1747,7 @@ print(f"  p (randomization probability): {p}")
 print(f"  q (probability of 0 when random): {q}")
 print(f"  ε (epsilon - privacy budget): {epsilon:.4f}")
 print(f"\nInterpretation:")
-print(f"  - Each sensitive attribute leaks at most {epsilon:.4f} bits of information")
+print(f"  - ε = {epsilon:.4f} nats (natural log units)")
 print(f"  - Lower epsilon = stronger privacy (harder to infer true values)")
 print(f"  - With p={p}, true value is kept {(1-p)*100:.0f}% of the time")
 
@@ -1753,8 +1790,8 @@ print(f"  q (probability of 0 when random): {q}")
 print(f"  ε (epsilon - per-attribute budget): {epsilon:.4f}")
 print(f"  ε_total (basic composition across {len(sensitive_dp_cols)} attrs): {epsilon_total:.4f}")
 print("\nInterpretation:")
-print(f"  - Each sensitive attribute leaks at most {epsilon:.4f} information units")
-print(f"  - Basic composition bound across all sensitive attributes: {epsilon_total:.4f}")
+print(f"  - ε = {epsilon:.4f} nats per attribute (natural log units)")
+print(f"  - Basic composition bound across all sensitive attributes: {epsilon_total:.4f} nats")
 print(f"  - With p={p}, true value is kept {(1-p)*100:.0f}% of the time")
 
 print("\nAfter DP - Noisy distributions:")
@@ -2027,19 +2064,16 @@ print("\nStep 11b: Feature Engineering")
 print("="*60)
 
 # Feature 1: Lead time categories (more granular)
-# Categories: 0=same day or before, 1=next day, 2=2-3 days, 3=4-7 days, 4=1-2 weeks, 5=2-4 weeks, 6=more than 4 weeks
+# Categories: 0=same day, 1=next day, 2=2-3 days, 3=4-7 days, 4=1-2 weeks, 5=2-4 weeks, 6=more than 4 weeks
+# Note: DaysBetween is already >= 0 after date normalization fix
 df_final_anonymous['LeadTime_Category'] = pd.cut(
     df_final_anonymous['DaysBetween'],
-    bins=[-float('inf'), 0, 1, 3, 7, 14, 30, float('inf')],
+    bins=[-1, 0, 1, 3, 7, 14, 30, float('inf')],
     labels=[0, 1, 2, 3, 4, 5, 6]
 ).astype(int)
 print("✓ Created LeadTime_Category (0-6 scale based on days between scheduling and appointment)")
 
-# Feature 2: Is same day appointment
-df_final_anonymous['IsSameDay'] = (df_final_anonymous['DaysBetween'] <= 0).astype(int)
-print("✓ Created IsSameDay (binary: 1 if appointment is same day or earlier)")
-
-# Feature 3: Is weekend appointment
+# Feature 2: Is weekend appointment
 df_final_anonymous['IsWeekend'] = (df_final_anonymous['AppointmentDayOfWeek'] >= 5).astype(int)
 print("✓ Created IsWeekend (binary: 1 if appointment is on Saturday or Sunday)")
 
@@ -2052,11 +2086,10 @@ df_final_anonymous['HealthBurden'] = (
 )
 print("✓ Created HealthBurden (sum of 4 medical conditions, range 0-4)")
 
-print(f"\nNew features added: LeadTime_Category, IsSameDay, IsWeekend, HealthBurden")
+print(f"\nNew features added: LeadTime_Category, IsWeekend, HealthBurden")
 print(f"Updated dataset shape: {df_final_anonymous.shape}")
 print(f"\nNew feature distributions:")
 print(f"  LeadTime_Category: {df_final_anonymous['LeadTime_Category'].value_counts().sort_index().to_dict()}")
-print(f"  IsSameDay: {df_final_anonymous['IsSameDay'].value_counts().to_dict()}")
 print(f"  IsWeekend: {df_final_anonymous['IsWeekend'].value_counts().to_dict()}")
 print(f"  HealthBurden: {df_final_anonymous['HealthBurden'].value_counts().sort_index().to_dict()}")
 
@@ -2085,7 +2118,7 @@ print(f"  HealthBurden: {df_final_anonymous['HealthBurden'].value_counts().sort_
 print("\nStep 12: Preparing Data for Machine Learning")
 print("="*60)
 
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, GroupShuffleSplit
 from sklearn.preprocessing import LabelEncoder
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from xgboost import XGBClassifier
@@ -2100,7 +2133,10 @@ print("="*60)
 
 df_ml_anon = df_final_anonymous.copy()
 
-# Encode categorical variables
+# Add patient_ids for group splitting (aligned with final dataset)
+df_ml_anon['PatientId'] = patient_ids.values
+
+# Encode Age_Group as ordinal (meaningful ordering)
 age_mapping = {
     '0-17': 0,
     '18-29': 1,
@@ -2111,25 +2147,32 @@ age_mapping = {
 }
 df_ml_anon['Age_Group'] = df_ml_anon['Age_Group'].astype(str).map(age_mapping).astype('int64')
 
+# One-hot encode Gender (2 categories)
 gender_mapping = {'F': 0, 'M': 1}
 df_ml_anon['Gender'] = df_ml_anon['Gender'].map(gender_mapping).astype('int64')
 
-le_region = LabelEncoder()
-df_ml_anon['Region'] = le_region.fit_transform(df_ml_anon['Region'].astype(str))
+# One-hot encode Region (9 categories - no fake ordering)
+region_dummies = pd.get_dummies(df_ml_anon['Region'], prefix='Region')
+df_ml_anon = pd.concat([df_ml_anon.drop('Region', axis=1), region_dummies], axis=1)
 
-dow_mapping = {0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6}
-df_ml_anon['AppointmentDayOfWeek'] = df_ml_anon['AppointmentDayOfWeek'].map(dow_mapping).astype('int64')
-df_ml_anon['ScheduledDayOfWeek'] = df_ml_anon['ScheduledDayOfWeek'].map(dow_mapping).astype('int64')
+# One-hot encode weekday features (avoid fake ordinal relationship)
+appt_dow_dummies = pd.get_dummies(df_ml_anon['AppointmentDayOfWeek'], prefix='ApptDOW')
+sched_dow_dummies = pd.get_dummies(df_ml_anon['ScheduledDayOfWeek'], prefix='SchedDOW')
+df_ml_anon = pd.concat([df_ml_anon.drop(['AppointmentDayOfWeek', 'ScheduledDayOfWeek'], axis=1), 
+                        appt_dow_dummies, sched_dow_dummies], axis=1)
 
 print(f"\nAnonymized dataset shape: {df_ml_anon.shape}")
 print(f"Missing values: {df_ml_anon.isnull().sum().sum()}")
 
 # Separate features and target for anonymized data
-X_anon = df_ml_anon.drop('NoShow', axis=1)
+# Keep PatientId separate for group splitting
+patient_ids_anon = df_ml_anon['PatientId']
+X_anon = df_ml_anon.drop(['NoShow', 'PatientId'], axis=1)
 y_anon = df_ml_anon['NoShow']
 
 print(f"\nAnonymized Features ({X_anon.shape[1]} features):")
 print(f"  {list(X_anon.columns)}")
+
 # Ensure all columns are numeric (convert any remaining categorical to int)
 for col in X_anon.columns:
     if X_anon[col].dtype == 'object' or X_anon[col].dtype.name == 'category':
@@ -2153,34 +2196,50 @@ print("="*60)
 # Use the protected dataset but with original values (before generalization)
 df_ml_orig = df_protected.copy()
 
+# Add patient_ids for group splitting
+df_ml_orig['PatientId'] = patient_ids.values
+
 # Select same features as anonymized but use original values
 # Use original Age (not generalized), original Neighbourhood (not Region)
 # Use original medical conditions (not DP-protected)
 
+# Remove columns added during anonymization process (generalized/DP columns)
+cols_to_remove = ['Region', 'Age_generalized', 
+                  'Hipertension_DP', 'Diabetes_DP', 'Alcoholism_DP', 
+                  'Handcap_binary', 'Handcap_binary_DP', 'Scholarship_DP']
+for col in cols_to_remove:
+    if col in df_ml_orig.columns:
+        df_ml_orig = df_ml_orig.drop(columns=[col])
+
 # Encode Gender
 df_ml_orig['Gender'] = df_ml_orig['Gender'].map(gender_mapping)
 
-# Encode Neighbourhood directly
-le_neighbourhood = LabelEncoder()
-df_ml_orig['Neighbourhood_Encoded'] = le_neighbourhood.fit_transform(df_ml_orig['Neighbourhood'])
+# One-hot encode Neighbourhood (81 categories - avoid fake ordinal relationship)
+neighbourhood_dummies = pd.get_dummies(df_ml_orig['Neighbourhood'], prefix='Nbhd')
+df_ml_orig = pd.concat([df_ml_orig.drop('Neighbourhood', axis=1), neighbourhood_dummies], axis=1)
 
-# Encode day of week
-df_ml_orig['AppointmentDayOfWeek'] = df_ml_orig['AppointmentDayOfWeek'].map(dow_mapping)
-df_ml_orig['ScheduledDayOfWeek'] = df_ml_orig['ScheduledDayOfWeek'].map(dow_mapping)
+# One-hot encode weekday features (avoid fake ordinal relationship)
+appt_dow_dummies_orig = pd.get_dummies(df_ml_orig['AppointmentDayOfWeek'], prefix='ApptDOW')
+sched_dow_dummies_orig = pd.get_dummies(df_ml_orig['ScheduledDayOfWeek'], prefix='SchedDOW')
+df_ml_orig = pd.concat([df_ml_orig.drop(['AppointmentDayOfWeek', 'ScheduledDayOfWeek'], axis=1), 
+                        appt_dow_dummies_orig, sched_dow_dummies_orig], axis=1)
 
 # Feature Engineering for non-anonymized dataset (same as anonymized)
-# Feature 1: Lead time categories
+# Feature 1: Lead time categories (DaysBetween is already >= 0 after date normalization)
 df_ml_orig['LeadTime_Category'] = pd.cut(
     df_ml_orig['DaysBetween'],
-    bins=[-float('inf'), 0, 1, 3, 7, 14, 30, float('inf')],
+    bins=[-1, 0, 1, 3, 7, 14, 30, float('inf')],
     labels=[0, 1, 2, 3, 4, 5, 6]
 ).astype(int)
 
-# Feature 2: Is same day appointment
-df_ml_orig['IsSameDay'] = (df_ml_orig['DaysBetween'] <= 0).astype(int)
-
-# Feature 3: Is weekend appointment
-df_ml_orig['IsWeekend'] = (df_ml_orig['AppointmentDayOfWeek'] >= 5).astype(int)
+# Feature 2: Is weekend appointment (use one-hot encoded DOW)
+# Check if ApptDOW_5 or ApptDOW_6 exist (Saturday=5, Sunday=6)
+if 'ApptDOW_5' in df_ml_orig.columns:
+    df_ml_orig['IsWeekend'] = df_ml_orig['ApptDOW_5'].astype(int)
+    if 'ApptDOW_6' in df_ml_orig.columns:
+        df_ml_orig['IsWeekend'] = (df_ml_orig['ApptDOW_5'] | df_ml_orig['ApptDOW_6']).astype(int)
+else:
+    df_ml_orig['IsWeekend'] = 0
 
 # Feature 4: Health burden score (sum of original conditions)
 df_ml_orig['HealthBurden'] = (
@@ -2191,30 +2250,14 @@ df_ml_orig['HealthBurden'] = (
 )
 
 print("✓ Applied same feature engineering to non-anonymized dataset")
+print("✓ Used one-hot encoding for Neighbourhood (81 categories) and weekdays")
 
-# Select columns for non-anonymized model
-orig_features = [
-    'Age',  # Original age (not binned)
-    'Gender',
-    'Neighbourhood_Encoded',  # Original neighbourhood (not Region)
-    'DaysBetween',
-    'AppointmentDayOfWeek',
-    'AppointmentMonth',
-    'ScheduledDayOfWeek',
-    'SMS_received',
-    'Scholarship',
-    'Hipertension',  # Original (not DP-protected)
-    'Diabetes',
-    'Alcoholism',
-    'Handcap',
-    # New engineered features
-    'LeadTime_Category',
-    'IsSameDay',
-    'IsWeekend',
-    'HealthBurden'
-]
+# Keep PatientId separate for group splitting
+patient_ids_orig = df_ml_orig['PatientId']
 
-X_orig = df_ml_orig[orig_features].copy()
+# Select columns for non-anonymized model (exclude PatientId, NoShow_binary, No-show)
+exclude_cols = ['PatientId', 'NoShow_binary', 'No-show']
+X_orig = df_ml_orig.drop([c for c in exclude_cols if c in df_ml_orig.columns], axis=1)
 y_orig = df_ml_orig['NoShow_binary']
 
 # Ensure all columns are numeric
@@ -2223,6 +2266,8 @@ for col in X_orig.columns:
         X_orig[col] = X_orig[col].astype('int64')
     elif X_orig[col].dtype == 'float64':
         X_orig[col] = X_orig[col].astype('float64')
+    elif X_orig[col].dtype == 'bool':
+        X_orig[col] = X_orig[col].astype('int64')
     else:
         X_orig[col] = X_orig[col].astype('int64')
 
@@ -2272,9 +2317,13 @@ from sklearn.model_selection import train_test_split, StratifiedKFold
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.metrics import (
     accuracy_score, recall_score, roc_auc_score, average_precision_score,
-    fbeta_score, precision_recall_curve, confusion_matrix, classification_report
+    fbeta_score, precision_recall_curve, confusion_matrix, classification_report,
+    precision_score, brier_score_loss, balanced_accuracy_score
 )
 from sklearn.linear_model import LogisticRegression
+
+# Minimum recall threshold for objective
+MIN_RECALL = 0.80
 
 # Helper: cross-validated probabilities for threshold search
 def cross_validated_probas(model, X_train, y_train, cv):
@@ -2285,19 +2334,59 @@ def cross_validated_probas(model, X_train, y_train, cv):
         oof[val_idx_cv] = calibrator.predict_proba(X_train.iloc[val_idx_cv])[:, 1]
     return oof
 
-# Helper: pick threshold maximizing F2 (recall-weighted)
+# Helper: pick threshold that maximizes accuracy subject to recall >= MIN_RECALL
 def choose_threshold(y_true, probas):
-    thresholds = np.linspace(0.2, 0.8, 25)
-    f2_scores = [fbeta_score(y_true, (probas >= t).astype(int), beta=2) for t in thresholds]
-    best_idx = int(np.argmax(f2_scores))
-    return thresholds[best_idx], f2_scores[best_idx]
+    """
+    New objective: Maximize accuracy subject to recall >= MIN_RECALL
+    This balances accuracy and recall better than F2 (which heavily favors recall)
+    """
+    thresholds = np.linspace(0.01, 0.99, 99)
+    best = None
+    
+    for t in thresholds:
+        y_pred = (probas >= t).astype(int)
+        acc = accuracy_score(y_true, y_pred)
+        rec = recall_score(y_true, y_pred)
+        
+        # Only consider thresholds that meet minimum recall
+        if rec >= MIN_RECALL:
+            if best is None or acc > best['acc']:
+                best = {'threshold': t, 'acc': acc, 'rec': rec}
+    
+    # If no threshold meets minimum recall, fall back to maximizing balanced accuracy
+    if best is None:
+        print(f"    Warning: No threshold achieves recall >= {MIN_RECALL}, using balanced accuracy")
+        for t in thresholds:
+            y_pred = (probas >= t).astype(int)
+            bacc = balanced_accuracy_score(y_true, y_pred)
+            if best is None or bacc > best.get('bacc', 0):
+                best = {'threshold': t, 'acc': accuracy_score(y_true, y_pred), 
+                        'rec': recall_score(y_true, y_pred), 'bacc': bacc}
+    
+    return best['threshold'], best['acc']
 
-# Helper: train + evaluate on holdout
-def train_and_eval(dataset_label, X, y):
+# Helper: group-based train/test split by PatientId
+def group_train_test_split(X, y, groups, test_size=0.3, random_state=42):
+    """
+    Split data ensuring same patient doesn't appear in both train and test.
+    This prevents data leakage from repeated appointments.
+    """
+    gss = GroupShuffleSplit(n_splits=1, test_size=test_size, random_state=random_state)
+    train_idx, test_idx = next(gss.split(X, y, groups))
+    return (X.iloc[train_idx], X.iloc[test_idx], 
+            y.iloc[train_idx], y.iloc[test_idx])
+
+# Helper: train + evaluate on holdout with group-based splitting
+def train_and_eval(dataset_label, X, y, patient_ids):
     print(f"\n=== {dataset_label.upper()} ===")
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.3, stratify=y, random_state=42
+    
+    # Group-based split to prevent same patient in train and test
+    X_train, X_test, y_train, y_test = group_train_test_split(
+        X, y, patient_ids, test_size=0.3, random_state=42
     )
+    print(f"  Group-based split: {len(X_train)} train, {len(X_test)} test")
+    print(f"  Unique patients: {patient_ids.loc[X_train.index].nunique()} train, {patient_ids.loc[X_test.index].nunique()} test")
+    
     cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
 
     model_defs = {
@@ -2315,26 +2404,51 @@ def train_and_eval(dataset_label, X, y):
     }
 
     results = {}
+    n_test = len(y_test)
 
     for name, base_model in model_defs.items():
-        print(f"\n{name}: CV calibration + threshold tuning")
+        print(f"\n{name}: CV calibration + threshold tuning (acc s.t. recall>={MIN_RECALL})")
         oof_probas = cross_validated_probas(base_model, X_train, y_train, cv)
-        best_thresh, best_f2 = choose_threshold(y_train, oof_probas)
-        print(f"  Best threshold (F2): {best_thresh:.2f} | F2: {best_f2:.3f}")
+        best_thresh, best_acc = choose_threshold(y_train, oof_probas)
+        print(f"  Best threshold: {best_thresh:.2f} | CV Accuracy: {best_acc:.3f}")
 
         calibrator = CalibratedClassifierCV(base_model, method='sigmoid', cv=3)
         calibrator.fit(X_train, y_train)
         test_probas = calibrator.predict_proba(X_test)[:, 1]
         test_preds = (test_probas >= best_thresh).astype(int)
 
+        # Confusion matrix components
+        cm = confusion_matrix(y_test, test_preds)
+        tn, fp, fn, tp = cm.ravel()
+        
+        # Calculate specificity
+        specificity = tn / (tn + fp) if (tn + fp) > 0 else 0
+        
+        # Calculate precision
+        prec = precision_score(y_test, test_preds, zero_division=0)
+        
+        # Calculate Brier score (calibration quality)
+        brier = brier_score_loss(y_test, test_probas)
+        
+        # Expected interventions (flagged as no-show)
+        flagged_count = test_preds.sum()
+        flagged_pct = flagged_count / n_test * 100
+        
         metrics = {
             'accuracy': accuracy_score(y_test, test_preds),
             'recall': recall_score(y_test, test_preds),
+            'precision': prec,
+            'specificity': specificity,
             'roc_auc': roc_auc_score(y_test, test_probas),
             'pr_auc': average_precision_score(y_test, test_probas),
             'f2': fbeta_score(y_test, test_preds, beta=2),
+            'brier_score': brier,
             'threshold': best_thresh,
-            'confusion': confusion_matrix(y_test, test_preds),
+            'confusion': cm,
+            'flagged_count': flagged_count,
+            'flagged_pct': flagged_pct,
+            'test_probas': test_probas,
+            'y_test': y_test,
             'report': classification_report(y_test, test_preds, target_names=['Showed', 'No-Show'])
         }
         results[name] = {
@@ -2342,17 +2456,24 @@ def train_and_eval(dataset_label, X, y):
             'metrics': metrics
         }
 
-        print(f"    Accuracy: {metrics['accuracy']:.3f} | Recall: {metrics['recall']:.3f} | ROC-AUC: {metrics['roc_auc']:.3f} | PR-AUC: {metrics['pr_auc']:.3f} | F2: {metrics['f2']:.3f}")
+        print(f"    Accuracy: {metrics['accuracy']:.3f} | Recall: {metrics['recall']:.3f} | Precision: {metrics['precision']:.3f}")
+        print(f"    Specificity: {metrics['specificity']:.3f} | ROC-AUC: {metrics['roc_auc']:.3f} | Brier: {metrics['brier_score']:.4f}")
+        print(f"    F2: {metrics['f2']:.3f} | Flagged for intervention: {metrics['flagged_count']:,} ({metrics['flagged_pct']:.1f}%)")
         print(f"    Confusion matrix:\n{metrics['confusion']}")
     return results
 
+# Run training with group-based splitting
+print(f"\nObjective: Maximize accuracy subject to recall >= {MIN_RECALL}")
+print("Using group-based split by PatientId to prevent data leakage")
+
 results_comparison = {
-    'Anonymized': train_and_eval('Anonymized', X_anon, y_anon),
-    'Non-Anonymized': train_and_eval('Non-Anonymized', X_orig, y_orig)
+    'Anonymized': train_and_eval('Anonymized', X_anon, y_anon, patient_ids_anon),
+    'Non-Anonymized': train_and_eval('Non-Anonymized', X_orig, y_orig, patient_ids_orig)
 }
 
 print("\n" + "="*60)
 print("Modeling complete: calibrated, CV-tuned, and threshold-adjusted")
+print(f"Objective: Maximize accuracy while maintaining recall >= {MIN_RECALL}")
 print("="*60)
 
 
@@ -2373,13 +2494,34 @@ for dataset in ['Anonymized', 'Non-Anonymized']:
             'Threshold': round(m['threshold'], 2),
             'Accuracy': round(m['accuracy'], 3),
             'Recall': round(m['recall'], 3),
+            'Precision': round(m['precision'], 3),
+            'Specificity': round(m['specificity'], 3),
             'ROC-AUC': round(m['roc_auc'], 3),
             'PR-AUC': round(m['pr_auc'], 3),
-            'F2': round(m['f2'], 3)
+            'F2': round(m['f2'], 3),
+            'Brier': round(m['brier_score'], 4),
+            'Flagged%': round(m['flagged_pct'], 1)
         })
 
 comparison_df = pd.DataFrame(comparison_rows)
-print(comparison_df)
+print(comparison_df.to_string())
+
+# Operational workload summary
+print("\n" + "="*60)
+print("OPERATIONAL WORKLOAD ANALYSIS (Intervention Costs)")
+print("="*60)
+print("\nIf model flags patients for intervention (SMS, call, etc.):")
+for dataset in ['Anonymized', 'Non-Anonymized']:
+    print(f"\n{dataset}:")
+    for model_name, payload in results_comparison[dataset].items():
+        m = payload['metrics']
+        print(f"  {model_name}:")
+        print(f"    Threshold: {m['threshold']:.2f} | Flagged: {m['flagged_pct']:.1f}% of appointments")
+        print(f"    Precision: {m['precision']:.1%} of flagged actually no-show (true positives)")
+        print(f"    Recall: {m['recall']:.1%} of no-shows caught")
+        # Calculate workload: flagged * (1 - precision) = false positives as % of total
+        fp_rate = m['flagged_pct'] * (1 - m['precision']) / 100
+        print(f"    Wasted interventions: {fp_rate*100:.1f}% of all appointments (false positives)")
 
 # Plot Accuracy, Recall and ROC-AUC for quick scan
 fig, axes = plt.subplots(1, 3, figsize=(16, 5))
@@ -2407,6 +2549,52 @@ plt.tight_layout()
 plt.savefig(f'{output_dir}/13_model_comparison.png', dpi=300, bbox_inches='tight')
 plt.close()
 print(f'  Saved: {output_dir}/13_model_comparison.png')
+
+# Step 14a: Calibration Plots (Reliability Diagrams)
+print("\nStep 14a: Calibration Analysis (Reliability Diagrams)")
+print("="*60)
+
+from sklearn.calibration import calibration_curve
+
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+for idx, dataset in enumerate(['Anonymized', 'Non-Anonymized']):
+    ax = axes[idx]
+    ax.plot([0, 1], [0, 1], 'k--', label='Perfectly calibrated')
+    
+    for model_name, payload in results_comparison[dataset].items():
+        m = payload['metrics']
+        y_test = m['y_test']
+        test_probas = m['test_probas']
+        
+        # Compute calibration curve
+        prob_true, prob_pred = calibration_curve(y_test, test_probas, n_bins=10, strategy='uniform')
+        brier = m['brier_score']
+        
+        ax.plot(prob_pred, prob_true, marker='o', label=f"{model_name} (Brier={brier:.4f})")
+    
+    ax.set_xlabel('Mean Predicted Probability', fontsize=11)
+    ax.set_ylabel('Fraction of Positives', fontsize=11)
+    ax.set_title(f'{dataset} Dataset\nCalibration Curves', fontweight='bold')
+    ax.legend(loc='lower right', fontsize=9)
+    ax.grid(alpha=0.3)
+    ax.set_xlim([0, 1])
+    ax.set_ylim([0, 1])
+
+plt.suptitle('Model Calibration: How Well Do Predicted Probabilities Match Reality?', 
+             fontsize=13, fontweight='bold', y=1.02)
+plt.tight_layout()
+plt.savefig(f'{output_dir}/13b_calibration_plots.png', dpi=300, bbox_inches='tight')
+plt.close()
+print(f'  Saved: {output_dir}/13b_calibration_plots.png')
+
+# Print calibration interpretation
+print("\nCALIBRATION INTERPRETATION:")
+print("-" * 50)
+print("• Brier Score: Lower is better (0 = perfect, 0.25 = random)")
+print("• Curves above diagonal: Model underestimates risk")
+print("• Curves below diagonal: Model overestimates risk")
+print("• Closer to diagonal = better calibrated probabilities")
 
 
 # In[30]:
