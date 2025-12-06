@@ -605,10 +605,10 @@ Interpretation:
 
 After DP - Noisy distributions:
   Hipertension_DP: 0.2881 (original: 0.1975, diff: 0.0906)
-  Diabetes_DP: 0.2010 (original: 0.0721, diff: 0.1289)
-  Alcoholism_DP: 0.1719 (original: 0.0311, diff: 0.1408)
-  Handcap_binary_DP: 0.1615 (original: 0.0203, diff: 0.1413)
-  Scholarship_DP: 0.2183 (original: 0.0986, diff: 0.1197)
+  Diabetes_DP: 0.1982 (original: 0.0721, diff: 0.1261)
+  Alcoholism_DP: 0.1709 (original: 0.0311, diff: 0.1398)
+  Handcap_binary_DP: 0.1638 (original: 0.0203, diff: 0.1435)
+  Scholarship_DP: 0.2210 (original: 0.0986, diff: 0.1223)
   Saved: output_png/11_differential_privacy_comparison.png
 
 Differential privacy applied to 5 sensitive attributes
@@ -672,26 +672,26 @@ First few rows:
    AppointmentMonth  ScheduledDayOfWeek  SMS_received  Hipertension  Diabetes  \
 0                 4                   4             0             1         0   
 1                 4                   4             0             0         0   
-2                 4                   4             0             1         0   
+2                 4                   4             0             0         0   
 3                 4                   4             0             0         0   
-4                 4                   4             0             1         1   
+4                 4                   4             0             1         0   
 5                 4                   2             0             1         0   
-6                 4                   2             0             0         1   
+6                 4                   2             0             0         0   
 7                 4                   2             0             0         0   
 8                 4                   4             0             0         0   
 9                 4                   2             0             0         0   
 
    Alcoholism  Handcap  Scholarship  NoShow  
-0           0        0            0       0  
+0           1        1            0       0  
 1           0        0            0       0  
-2           0        0            0       0  
-3           0        1            0       0  
+2           0        1            1       0  
+3           0        0            0       0  
 4           0        0            0       0  
 5           0        0            0       0  
-6           0        1            0       1  
+6           0        0            0       1  
 7           0        0            0       1  
-8           1        0            0       0  
-9           0        0            0       0  
+8           0        0            1       0  
+9           0        1            0       0  
 
 ============================================================
 Final Anonymized Dataset Summary:
@@ -714,8 +714,8 @@ count      110526.000000       110526.000000  110526.000000  110526.000000
 unique               NaN                 NaN            NaN            NaN   
 top                  NaN                 NaN            NaN            NaN   
 freq                 NaN                 NaN            NaN            NaN   
-mean            5.210041            1.851971       0.321029       0.288095   
-std             0.473776            1.378515       0.466874       0.452878   
+mean            5.210041            1.851971       0.321029       0.288068   
+std             0.473776            1.378515       0.466874       0.452865   
 min             4.000000            0.000000       0.000000       0.000000   
 25%             5.000000            1.000000       0.000000       0.000000   
 50%             5.000000            2.000000       0.000000       0.000000   
@@ -727,8 +727,8 @@ count   110526.000000  110526.000000  110526.000000  110526.000000
 unique            NaN            NaN            NaN            NaN   
 top               NaN            NaN            NaN            NaN   
 freq              NaN            NaN            NaN            NaN   
-mean         0.200975       0.171932       0.161528       0.218302   
-std          0.400731       0.377323       0.368019       0.413095   
+mean         0.198234       0.170937       0.163780       0.220980   
+std          0.398671       0.376456       0.370078       0.414909   
 min          0.000000       0.000000       0.000000       0.000000   
 25%          0.000000       0.000000       0.000000       0.000000   
 50%          0.000000       0.000000       0.000000       0.000000   
@@ -750,17 +750,15 @@ max          1.000000
 
 Step 11b: Feature Engineering
 ============================================================
-✓ Created LeadTime_Category (0-6 scale based on days between scheduling and appointment)
-✓ Created IsWeekend (binary: 1 if appointment is on Saturday or Sunday)
+✓ Created LogDaysBetween (log1p transform to reduce skewness)
 ✓ Created HealthBurden (sum of 4 medical conditions, range 0-4)
 
-New features added: LeadTime_Category, IsWeekend, HealthBurden
-Updated dataset shape: (110526, 17)
+New features added: LogDaysBetween, HealthBurden
+Updated dataset shape: (110526, 16)
 
 New feature distributions:
-  LeadTime_Category: {0: 38567, 1: 5213, 2: 9462, 3: 17510, 4: 12025, 5: 17371, 6: 10378}
-  IsWeekend: {0: 110487, 1: 39}
-  HealthBurden: {0: 45790, 1: 42685, 2: 18155, 3: 3668, 4: 228}
+  LogDaysBetween: min=0.00, max=5.19, mean=1.54
+  HealthBurden: {0: 45990, 1: 42596, 2: 17976, 3: 3660, 4: 304}
 
 Step 12: Preparing Data for Machine Learning
 ============================================================
@@ -769,14 +767,14 @@ Step 12: Preparing Data for Machine Learning
 PREPARING ANONYMIZED DATASET
 ============================================================
 
-Anonymized dataset shape: (110526, 36)
+Anonymized dataset shape: (110526, 35)
 Missing values: 0
 
-Anonymized Features (34 features):
-  ['Age_Group', 'Gender', 'DaysBetween', 'AppointmentMonth', 'SMS_received', 'Hipertension', 'Diabetes', 'Alcoholism', 'Handcap', 'Scholarship', 'LeadTime_Category', 'IsWeekend', 'HealthBurden', 'Region_Centro', 'Region_Goiabeiras', 'Region_Jardim Camburi', 'Region_Jardim da Penha', 'Region_Jucutuquara', 'Region_Maruípe', 'Region_Praia do Canto', 'Region_Santo Antônio', 'Region_São Pedro', 'ApptDOW_0', 'ApptDOW_1', 'ApptDOW_2', 'ApptDOW_3', 'ApptDOW_4', 'ApptDOW_5', 'SchedDOW_0', 'SchedDOW_1', 'SchedDOW_2', 'SchedDOW_3', 'SchedDOW_4', 'SchedDOW_5']
+Anonymized Features (33 features):
+  ['Age_Group', 'Gender', 'DaysBetween', 'AppointmentMonth', 'SMS_received', 'Hipertension', 'Diabetes', 'Alcoholism', 'Handcap', 'Scholarship', 'LogDaysBetween', 'HealthBurden', 'Region_Centro', 'Region_Goiabeiras', 'Region_Jardim Camburi', 'Region_Jardim da Penha', 'Region_Jucutuquara', 'Region_Maruípe', 'Region_Praia do Canto', 'Region_Santo Antônio', 'Region_São Pedro', 'ApptDOW_0', 'ApptDOW_1', 'ApptDOW_2', 'ApptDOW_3', 'ApptDOW_4', 'ApptDOW_5', 'SchedDOW_0', 'SchedDOW_1', 'SchedDOW_2', 'SchedDOW_3', 'SchedDOW_4', 'SchedDOW_5']
 
-Anonymized Features (34 features) after encoding:
-  ['Age_Group', 'Gender', 'DaysBetween', 'AppointmentMonth', 'SMS_received', 'Hipertension', 'Diabetes', 'Alcoholism', 'Handcap', 'Scholarship', 'LeadTime_Category', 'IsWeekend', 'HealthBurden', 'Region_Centro', 'Region_Goiabeiras', 'Region_Jardim Camburi', 'Region_Jardim da Penha', 'Region_Jucutuquara', 'Region_Maruípe', 'Region_Praia do Canto', 'Region_Santo Antônio', 'Region_São Pedro', 'ApptDOW_0', 'ApptDOW_1', 'ApptDOW_2', 'ApptDOW_3', 'ApptDOW_4', 'ApptDOW_5', 'SchedDOW_0', 'SchedDOW_1', 'SchedDOW_2', 'SchedDOW_3', 'SchedDOW_4', 'SchedDOW_5']
+Anonymized Features (33 features) after encoding:
+  ['Age_Group', 'Gender', 'DaysBetween', 'AppointmentMonth', 'SMS_received', 'Hipertension', 'Diabetes', 'Alcoholism', 'Handcap', 'Scholarship', 'LogDaysBetween', 'HealthBurden', 'Region_Centro', 'Region_Goiabeiras', 'Region_Jardim Camburi', 'Region_Jardim da Penha', 'Region_Jucutuquara', 'Region_Maruípe', 'Region_Praia do Canto', 'Region_Santo Antônio', 'Region_São Pedro', 'ApptDOW_0', 'ApptDOW_1', 'ApptDOW_2', 'ApptDOW_3', 'ApptDOW_4', 'ApptDOW_5', 'SchedDOW_0', 'SchedDOW_1', 'SchedDOW_2', 'SchedDOW_3', 'SchedDOW_4', 'SchedDOW_5']
 Target distribution: No-show rate = 20.19%
 
 ============================================================
@@ -785,17 +783,17 @@ PREPARING NON-ANONYMIZED DATASET
 ✓ Applied same feature engineering to non-anonymized dataset
 ✓ Used one-hot encoding for Neighbourhood (81 categories) and weekdays
 
-Non-anonymized dataset shape: (110526, 106)
-Non-anonymized Features (106 features):
-  ['Gender', 'Age', 'Scholarship', 'Hipertension', 'Diabetes', 'Alcoholism', 'Handcap', 'SMS_received', 'DaysBetween', 'AppointmentMonth', 'Nbhd_AEROPORTO', 'Nbhd_ANDORINHAS', 'Nbhd_ANTÔNIO HONÓRIO', 'Nbhd_ARIOVALDO FAVALESSA', 'Nbhd_BARRO VERMELHO', 'Nbhd_BELA VISTA', 'Nbhd_BENTO FERREIRA', 'Nbhd_BOA VISTA', 'Nbhd_BONFIM', 'Nbhd_CARATOÍRA', 'Nbhd_CENTRO', 'Nbhd_COMDUSA', 'Nbhd_CONQUISTA', 'Nbhd_CONSOLAÇÃO', 'Nbhd_CRUZAMENTO', 'Nbhd_DA PENHA', 'Nbhd_DE LOURDES', 'Nbhd_DO CABRAL', 'Nbhd_DO MOSCOSO', 'Nbhd_DO QUADRO', 'Nbhd_ENSEADA DO SUÁ', 'Nbhd_ESTRELINHA', 'Nbhd_FONTE GRANDE', 'Nbhd_FORTE SÃO JOÃO', 'Nbhd_FRADINHOS', 'Nbhd_GOIABEIRAS', 'Nbhd_GRANDE VITÓRIA', 'Nbhd_GURIGICA', 'Nbhd_HORTO', 'Nbhd_ILHA DAS CAIEIRAS', 'Nbhd_ILHA DE SANTA MARIA', 'Nbhd_ILHA DO BOI', 'Nbhd_ILHA DO FRADE', 'Nbhd_ILHA DO PRÍNCIPE', 'Nbhd_ILHAS OCEÂNICAS DE TRINDADE', 'Nbhd_INHANGUETÁ', 'Nbhd_ITARARÉ', 'Nbhd_JABOUR', 'Nbhd_JARDIM CAMBURI', 'Nbhd_JARDIM DA PENHA', 'Nbhd_JESUS DE NAZARETH', 'Nbhd_JOANA D´ARC', 'Nbhd_JUCUTUQUARA', 'Nbhd_MARIA ORTIZ', 'Nbhd_MARUÍPE', 'Nbhd_MATA DA PRAIA', 'Nbhd_MONTE BELO', 'Nbhd_MORADA DE CAMBURI', 'Nbhd_MÁRIO CYPRESTE', 'Nbhd_NAZARETH', 'Nbhd_NOVA PALESTINA', 'Nbhd_PARQUE INDUSTRIAL', 'Nbhd_PARQUE MOSCOSO', 'Nbhd_PIEDADE', 'Nbhd_PONTAL DE CAMBURI', 'Nbhd_PRAIA DO CANTO', 'Nbhd_PRAIA DO SUÁ', 'Nbhd_REDENÇÃO', 'Nbhd_REPÚBLICA', 'Nbhd_RESISTÊNCIA', 'Nbhd_ROMÃO', 'Nbhd_SANTA CECÍLIA', 'Nbhd_SANTA CLARA', 'Nbhd_SANTA HELENA', 'Nbhd_SANTA LUÍZA', 'Nbhd_SANTA LÚCIA', 'Nbhd_SANTA MARTHA', 'Nbhd_SANTA TEREZA', 'Nbhd_SANTO ANDRÉ', 'Nbhd_SANTO ANTÔNIO', 'Nbhd_SANTOS DUMONT', 'Nbhd_SANTOS REIS', 'Nbhd_SEGURANÇA DO LAR', 'Nbhd_SOLON BORGES', 'Nbhd_SÃO BENEDITO', 'Nbhd_SÃO CRISTÓVÃO', 'Nbhd_SÃO JOSÉ', 'Nbhd_SÃO PEDRO', 'Nbhd_TABUAZEIRO', 'Nbhd_UNIVERSITÁRIO', 'Nbhd_VILA RUBIM', 'ApptDOW_0', 'ApptDOW_1', 'ApptDOW_2', 'ApptDOW_3', 'ApptDOW_4', 'ApptDOW_5', 'SchedDOW_0', 'SchedDOW_1', 'SchedDOW_2', 'SchedDOW_3', 'SchedDOW_4', 'SchedDOW_5', 'LeadTime_Category', 'IsWeekend', 'HealthBurden']
+Non-anonymized dataset shape: (110526, 105)
+Non-anonymized Features (105 features):
+  ['Gender', 'Age', 'Scholarship', 'Hipertension', 'Diabetes', 'Alcoholism', 'Handcap', 'SMS_received', 'DaysBetween', 'AppointmentMonth', 'Nbhd_AEROPORTO', 'Nbhd_ANDORINHAS', 'Nbhd_ANTÔNIO HONÓRIO', 'Nbhd_ARIOVALDO FAVALESSA', 'Nbhd_BARRO VERMELHO', 'Nbhd_BELA VISTA', 'Nbhd_BENTO FERREIRA', 'Nbhd_BOA VISTA', 'Nbhd_BONFIM', 'Nbhd_CARATOÍRA', 'Nbhd_CENTRO', 'Nbhd_COMDUSA', 'Nbhd_CONQUISTA', 'Nbhd_CONSOLAÇÃO', 'Nbhd_CRUZAMENTO', 'Nbhd_DA PENHA', 'Nbhd_DE LOURDES', 'Nbhd_DO CABRAL', 'Nbhd_DO MOSCOSO', 'Nbhd_DO QUADRO', 'Nbhd_ENSEADA DO SUÁ', 'Nbhd_ESTRELINHA', 'Nbhd_FONTE GRANDE', 'Nbhd_FORTE SÃO JOÃO', 'Nbhd_FRADINHOS', 'Nbhd_GOIABEIRAS', 'Nbhd_GRANDE VITÓRIA', 'Nbhd_GURIGICA', 'Nbhd_HORTO', 'Nbhd_ILHA DAS CAIEIRAS', 'Nbhd_ILHA DE SANTA MARIA', 'Nbhd_ILHA DO BOI', 'Nbhd_ILHA DO FRADE', 'Nbhd_ILHA DO PRÍNCIPE', 'Nbhd_ILHAS OCEÂNICAS DE TRINDADE', 'Nbhd_INHANGUETÁ', 'Nbhd_ITARARÉ', 'Nbhd_JABOUR', 'Nbhd_JARDIM CAMBURI', 'Nbhd_JARDIM DA PENHA', 'Nbhd_JESUS DE NAZARETH', 'Nbhd_JOANA D´ARC', 'Nbhd_JUCUTUQUARA', 'Nbhd_MARIA ORTIZ', 'Nbhd_MARUÍPE', 'Nbhd_MATA DA PRAIA', 'Nbhd_MONTE BELO', 'Nbhd_MORADA DE CAMBURI', 'Nbhd_MÁRIO CYPRESTE', 'Nbhd_NAZARETH', 'Nbhd_NOVA PALESTINA', 'Nbhd_PARQUE INDUSTRIAL', 'Nbhd_PARQUE MOSCOSO', 'Nbhd_PIEDADE', 'Nbhd_PONTAL DE CAMBURI', 'Nbhd_PRAIA DO CANTO', 'Nbhd_PRAIA DO SUÁ', 'Nbhd_REDENÇÃO', 'Nbhd_REPÚBLICA', 'Nbhd_RESISTÊNCIA', 'Nbhd_ROMÃO', 'Nbhd_SANTA CECÍLIA', 'Nbhd_SANTA CLARA', 'Nbhd_SANTA HELENA', 'Nbhd_SANTA LUÍZA', 'Nbhd_SANTA LÚCIA', 'Nbhd_SANTA MARTHA', 'Nbhd_SANTA TEREZA', 'Nbhd_SANTO ANDRÉ', 'Nbhd_SANTO ANTÔNIO', 'Nbhd_SANTOS DUMONT', 'Nbhd_SANTOS REIS', 'Nbhd_SEGURANÇA DO LAR', 'Nbhd_SOLON BORGES', 'Nbhd_SÃO BENEDITO', 'Nbhd_SÃO CRISTÓVÃO', 'Nbhd_SÃO JOSÉ', 'Nbhd_SÃO PEDRO', 'Nbhd_TABUAZEIRO', 'Nbhd_UNIVERSITÁRIO', 'Nbhd_VILA RUBIM', 'ApptDOW_0', 'ApptDOW_1', 'ApptDOW_2', 'ApptDOW_3', 'ApptDOW_4', 'ApptDOW_5', 'SchedDOW_0', 'SchedDOW_1', 'SchedDOW_2', 'SchedDOW_3', 'SchedDOW_4', 'SchedDOW_5', 'LogDaysBetween', 'HealthBurden']
 Missing values: 0
 Target distribution: No-show rate = 20.19%
 
 ============================================================
 DATA PREPARATION COMPLETE
 ============================================================
-Anonymized dataset ready: 110526 records, 34 features
-Non-anonymized dataset ready: 110526 records, 106 features
+Anonymized dataset ready: 110526 records, 33 features
+Non-anonymized dataset ready: 110526 records, 105 features
 
 Step 13: Modeling with stratified CV + calibrated probabilities + tuned threshold
 ============================================================
@@ -808,62 +806,62 @@ Using group-based split by PatientId to prevent data leakage
   Unique patients: 43608 train, 18690 test
 
 Baseline LogReg: CV calibration + threshold tuning (acc s.t. recall>=0.8)
-  Best threshold: 0.16 | CV Accuracy: 0.587
-    Accuracy: 0.581 | Recall: 0.802 | Precision: 0.302
-    Specificity: 0.524 | ROC-AUC: 0.711 | Brier: 0.1490
-    F2: 0.602 | Flagged for intervention: 18,049 (54.2%)
+  Best threshold: 0.16 | CV Accuracy: 0.589
+    Accuracy: 0.582 | Recall: 0.797 | Precision: 0.301
+    Specificity: 0.527 | ROC-AUC: 0.713 | Brier: 0.1485
+    F2: 0.599 | Flagged for intervention: 17,949 (53.9%)
     Confusion matrix:
-[[13905 12607]
- [ 1344  5442]]
+[[13969 12543]
+ [ 1380  5406]]
 
 Random Forest: CV calibration + threshold tuning (acc s.t. recall>=0.8)
-  Best threshold: 0.19 | CV Accuracy: 0.594
-    Accuracy: 0.588 | Recall: 0.790 | Precision: 0.304
-    Specificity: 0.536 | ROC-AUC: 0.716 | Brier: 0.1474
-    F2: 0.598 | Flagged for intervention: 17,653 (53.0%)
+  Best threshold: 0.18 | CV Accuracy: 0.580
+    Accuracy: 0.573 | Recall: 0.818 | Precision: 0.299
+    Specificity: 0.510 | ROC-AUC: 0.716 | Brier: 0.1474
+    F2: 0.607 | Flagged for intervention: 18,544 (55.7%)
     Confusion matrix:
-[[14219 12293]
- [ 1426  5360]]
+[[13516 12996]
+ [ 1238  5548]]
 
 XGBoost: CV calibration + threshold tuning (acc s.t. recall>=0.8)
   Best threshold: 0.18 | CV Accuracy: 0.585
-    Accuracy: 0.577 | Recall: 0.792 | Precision: 0.298
-    Specificity: 0.522 | ROC-AUC: 0.710 | Brier: 0.1487
-    F2: 0.595 | Flagged for intervention: 18,046 (54.2%)
+    Accuracy: 0.579 | Recall: 0.798 | Precision: 0.300
+    Specificity: 0.523 | ROC-AUC: 0.712 | Brier: 0.1486
+    F2: 0.599 | Flagged for intervention: 18,058 (54.2%)
     Confusion matrix:
-[[13842 12670]
- [ 1410  5376]]
+[[13868 12644]
+ [ 1372  5414]]
 
 === NON-ANONYMIZED ===
   Group-based split: 77228 train, 33298 test
   Unique patients: 43608 train, 18690 test
 
 Baseline LogReg: CV calibration + threshold tuning (acc s.t. recall>=0.8)
-  Best threshold: 0.16 | CV Accuracy: 0.584
-    Accuracy: 0.579 | Recall: 0.804 | Precision: 0.301
-    Specificity: 0.522 | ROC-AUC: 0.712 | Brier: 0.1488
-    F2: 0.603 | Flagged for intervention: 18,140 (54.5%)
+  Best threshold: 0.16 | CV Accuracy: 0.585
+    Accuracy: 0.580 | Recall: 0.802 | Precision: 0.301
+    Specificity: 0.523 | ROC-AUC: 0.715 | Brier: 0.1483
+    F2: 0.602 | Flagged for intervention: 18,074 (54.3%)
     Confusion matrix:
-[[13831 12681]
- [ 1327  5459]]
+[[13878 12634]
+ [ 1346  5440]]
 
 Random Forest: CV calibration + threshold tuning (acc s.t. recall>=0.8)
   Best threshold: 0.21 | CV Accuracy: 0.606
-    Accuracy: 0.599 | Recall: 0.793 | Precision: 0.311
+    Accuracy: 0.599 | Recall: 0.792 | Precision: 0.311
     Specificity: 0.550 | ROC-AUC: 0.730 | Brier: 0.1452
-    F2: 0.605 | Flagged for intervention: 17,309 (52.0%)
+    F2: 0.605 | Flagged for intervention: 17,316 (52.0%)
     Confusion matrix:
-[[14582 11930]
- [ 1407  5379]]
+[[14573 11939]
+ [ 1409  5377]]
 
 XGBoost: CV calibration + threshold tuning (acc s.t. recall>=0.8)
   Best threshold: 0.19 | CV Accuracy: 0.607
-    Accuracy: 0.598 | Recall: 0.792 | Precision: 0.310
-    Specificity: 0.549 | ROC-AUC: 0.729 | Brier: 0.1457
-    F2: 0.604 | Flagged for intervention: 17,340 (52.1%)
+    Accuracy: 0.597 | Recall: 0.792 | Precision: 0.309
+    Specificity: 0.547 | ROC-AUC: 0.729 | Brier: 0.1456
+    F2: 0.604 | Flagged for intervention: 17,374 (52.2%)
     Confusion matrix:
-[[14549 11963]
- [ 1409  5377]]
+[[14514 11998]
+ [ 1410  5376]]
 
 ============================================================
 Modeling complete: calibrated, CV-tuned, and threshold-adjusted
@@ -873,12 +871,12 @@ Objective: Maximize accuracy while maintaining recall >= 0.8
 Step 14: Performance comparison
 ============================================================
           Dataset            Model  Threshold  Accuracy  Recall  Precision  Specificity  ROC-AUC  PR-AUC     F2   Brier  Flagged%
-0      Anonymized  Baseline LogReg       0.16     0.581   0.802      0.302        0.524    0.711   0.338  0.602  0.1490      54.2
-1      Anonymized    Random Forest       0.19     0.588   0.790      0.304        0.536    0.716   0.348  0.598  0.1474      53.0
-2      Anonymized          XGBoost       0.18     0.577   0.792      0.298        0.522    0.710   0.343  0.595  0.1487      54.2
-3  Non-Anonymized  Baseline LogReg       0.16     0.579   0.804      0.301        0.522    0.712   0.341  0.603  0.1488      54.5
-4  Non-Anonymized    Random Forest       0.21     0.599   0.793      0.311        0.550    0.730   0.369  0.605  0.1452      52.0
-5  Non-Anonymized          XGBoost       0.19     0.598   0.792      0.310        0.549    0.729   0.369  0.604  0.1457      52.1
+0      Anonymized  Baseline LogReg       0.16     0.582   0.797      0.301        0.527    0.713   0.340  0.599  0.1485      53.9
+1      Anonymized    Random Forest       0.18     0.573   0.818      0.299        0.510    0.716   0.346  0.607  0.1474      55.7
+2      Anonymized          XGBoost       0.18     0.579   0.798      0.300        0.523    0.712   0.341  0.599  0.1486      54.2
+3  Non-Anonymized  Baseline LogReg       0.16     0.580   0.802      0.301        0.523    0.715   0.344  0.602  0.1483      54.3
+4  Non-Anonymized    Random Forest       0.21     0.599   0.792      0.311        0.550    0.730   0.369  0.605  0.1452      52.0
+5  Non-Anonymized          XGBoost       0.19     0.597   0.792      0.309        0.547    0.729   0.370  0.604  0.1456      52.2
 
 ============================================================
 OPERATIONAL WORKLOAD ANALYSIS (Intervention Costs)
@@ -888,37 +886,37 @@ If model flags patients for intervention (SMS, call, etc.):
 
 Anonymized:
   Baseline LogReg:
-    Threshold: 0.16 | Flagged: 54.2% of appointments
-    Precision: 30.2% of flagged actually no-show (true positives)
-    Recall: 80.2% of no-shows caught
-    Wasted interventions: 37.9% of all appointments (false positives)
+    Threshold: 0.16 | Flagged: 53.9% of appointments
+    Precision: 30.1% of flagged actually no-show (true positives)
+    Recall: 79.7% of no-shows caught
+    Wasted interventions: 37.7% of all appointments (false positives)
   Random Forest:
-    Threshold: 0.19 | Flagged: 53.0% of appointments
-    Precision: 30.4% of flagged actually no-show (true positives)
-    Recall: 79.0% of no-shows caught
-    Wasted interventions: 36.9% of all appointments (false positives)
+    Threshold: 0.18 | Flagged: 55.7% of appointments
+    Precision: 29.9% of flagged actually no-show (true positives)
+    Recall: 81.8% of no-shows caught
+    Wasted interventions: 39.0% of all appointments (false positives)
   XGBoost:
     Threshold: 0.18 | Flagged: 54.2% of appointments
-    Precision: 29.8% of flagged actually no-show (true positives)
-    Recall: 79.2% of no-shows caught
-    Wasted interventions: 38.1% of all appointments (false positives)
+    Precision: 30.0% of flagged actually no-show (true positives)
+    Recall: 79.8% of no-shows caught
+    Wasted interventions: 38.0% of all appointments (false positives)
 
 Non-Anonymized:
   Baseline LogReg:
-    Threshold: 0.16 | Flagged: 54.5% of appointments
+    Threshold: 0.16 | Flagged: 54.3% of appointments
     Precision: 30.1% of flagged actually no-show (true positives)
-    Recall: 80.4% of no-shows caught
-    Wasted interventions: 38.1% of all appointments (false positives)
+    Recall: 80.2% of no-shows caught
+    Wasted interventions: 37.9% of all appointments (false positives)
   Random Forest:
     Threshold: 0.21 | Flagged: 52.0% of appointments
     Precision: 31.1% of flagged actually no-show (true positives)
-    Recall: 79.3% of no-shows caught
-    Wasted interventions: 35.8% of all appointments (false positives)
-  XGBoost:
-    Threshold: 0.19 | Flagged: 52.1% of appointments
-    Precision: 31.0% of flagged actually no-show (true positives)
     Recall: 79.2% of no-shows caught
     Wasted interventions: 35.9% of all appointments (false positives)
+  XGBoost:
+    Threshold: 0.19 | Flagged: 52.2% of appointments
+    Precision: 30.9% of flagged actually no-show (true positives)
+    Recall: 79.2% of no-shows caught
+    Wasted interventions: 36.0% of all appointments (false positives)
   Saved: output_png/13_model_comparison.png
 
 Step 14a: Calibration Analysis (Reliability Diagrams)
@@ -951,32 +949,32 @@ TOP 5 FEATURES BY IMPORTANCE
 ============================================================
 
 Random Forest (Anonymized):
-   1. DaysBetween: 0.2451
-   2. LeadTime_Category: 0.1890
-   3. Age_Group: 0.0982
-   4. HealthBurden: 0.0388
-   5. Gender: 0.0338
+   1. DaysBetween: 0.2277
+   2. LogDaysBetween: 0.2225
+   3. Age_Group: 0.0961
+   4. HealthBurden: 0.0400
+   5. Gender: 0.0332
 
 XGBoost (Anonymized):
-   1. LeadTime_Category: 0.0942
-   2. DaysBetween: 0.0779
-   3. Age_Group: 0.0333
-   4. Region_Jardim da Penha: 0.0324
-   5. ApptDOW_0: 0.0318
+   1. DaysBetween: 0.0902
+   2. Age_Group: 0.0363
+   3. Region_Jardim da Penha: 0.0357
+   4. ApptDOW_0: 0.0345
+   5. Region_Santo Antônio: 0.0331
 
 Random Forest (Non-Anonymized):
-   1. LeadTime_Category: 0.2874
-   2. DaysBetween: 0.2790
-   3. Age: 0.1083
-   4. SMS_received: 0.0368
-   5. Gender: 0.0175
+   1. LogDaysBetween: 0.2960
+   2. DaysBetween: 0.2770
+   3. Age: 0.1066
+   4. SMS_received: 0.0376
+   5. Gender: 0.0171
 
 XGBoost (Non-Anonymized):
-   1. DaysBetween: 0.0297
-   2. LeadTime_Category: 0.0294
-   3. Nbhd_SÃO JOSÉ: 0.0159
-   4. Nbhd_GRANDE VITÓRIA: 0.0157
-   5. Nbhd_SANTO ANDRÉ: 0.0157
+   1. DaysBetween: 0.0314
+   2. Nbhd_SÃO JOSÉ: 0.0164
+   3. Nbhd_SANTA TEREZA: 0.0161
+   4. Nbhd_DO QUADRO: 0.0160
+   5. Nbhd_SANTO ANDRÉ: 0.0149
 
 Step 14f: Privacy vs Utility Analysis
 ============================================================
@@ -986,12 +984,12 @@ MODEL PERFORMANCE COMPARISON
 
 Detailed Metrics by Model and Dataset:
              Model         Dataset  Accuracy  Recall  ROC-AUC  PR-AUC      F2
-0  Baseline LogReg      Anonymized    0.5810  0.8019   0.7112  0.3382  0.6021
-1  Baseline LogReg  Non-Anonymized    0.5793  0.8045   0.7121  0.3409  0.6028
-2    Random Forest      Anonymized    0.5880  0.7899   0.7160  0.3482  0.5983
-3    Random Forest  Non-Anonymized    0.5995  0.7927   0.7298  0.3692  0.6050
-4          XGBoost      Anonymized    0.5772  0.7922   0.7104  0.3434  0.5948
-5          XGBoost  Non-Anonymized    0.5984  0.7924   0.7288  0.3686  0.6044
+0  Baseline LogReg      Anonymized    0.5819  0.7966   0.7133  0.3403  0.5994
+1  Baseline LogReg  Non-Anonymized    0.5802  0.8017   0.7145  0.3441  0.6015
+2    Random Forest      Anonymized    0.5725  0.8176   0.7162  0.3461  0.6072
+3    Random Forest  Non-Anonymized    0.5991  0.7924   0.7298  0.3689  0.6047
+4          XGBoost      Anonymized    0.5791  0.7978   0.7118  0.3410  0.5989
+5          XGBoost  Non-Anonymized    0.5973  0.7922   0.7289  0.3700  0.6038
 
 ============================================================
 UTILITY LOSS DUE TO PRIVACY PROTECTION
@@ -999,18 +997,18 @@ UTILITY LOSS DUE TO PRIVACY PROTECTION
 
 Baseline LogReg:
   Accuracy loss: -0.17%
-  Recall loss: +0.25%
-  ROC-AUC loss: +0.09%
+  Recall loss: +0.50%
+  ROC-AUC loss: +0.13%
 
 Random Forest:
-  Accuracy loss: +1.15%
-  Recall loss: +0.28%
-  ROC-AUC loss: +1.38%
+  Accuracy loss: +2.66%
+  Recall loss: -2.52%
+  ROC-AUC loss: +1.36%
 
 XGBoost:
-  Accuracy loss: +2.13%
-  Recall loss: +0.01%
-  ROC-AUC loss: +1.84%
+  Accuracy loss: +1.83%
+  Recall loss: -0.56%
+  ROC-AUC loss: +1.71%
   Saved: output_png/14b_privacy_utility_tradeoff.png
 
 ============================================================
@@ -1024,40 +1022,39 @@ Why do patients miss their scheduled medical appointments?
 
 FEATURE IMPORTANCE RANKING (Model-based)
 --------------------------------------------------
- 1. LeadTime_Category         0.0942
- 2. DaysBetween               0.0779
- 3. Age_Group                 0.0333
- 4. Region_Jardim da Penha    0.0324
- 5. ApptDOW_0                 0.0318
- 6. Region_Santo Antônio      0.0309
- 7. Region_São Pedro          0.0295
- 8. ApptDOW_3                 0.0282
- 9. Region_Jucutuquara        0.0282
-10. ApptDOW_4                 0.0281
-11. Gender                    0.0278
-12. Region_Praia do Canto     0.0278
-13. SMS_received              0.0274
-14. Region_Goiabeiras         0.0274
-15. Region_Jardim Camburi     0.0273
-16. ApptDOW_1                 0.0273
-17. AppointmentMonth          0.0272
-18. Region_Maruípe            0.0271
-19. Region_Centro             0.0271
-20. SchedDOW_2                0.0268
-21. SchedDOW_0                0.0267
-22. SchedDOW_4                0.0265
-23. SchedDOW_1                0.0265
-24. Alcoholism                0.0263
-25. Scholarship               0.0260
-26. Handcap                   0.0260
-27. SchedDOW_3                0.0259
-28. ApptDOW_2                 0.0256
-29. Diabetes                  0.0255
-30. Hipertension              0.0244
-31. HealthBurden              0.0238
-32. IsWeekend                 0.0109
-33. ApptDOW_5                 0.0093
-34. SchedDOW_5                0.0089
+ 1. DaysBetween               0.0902
+ 2. Age_Group                 0.0363
+ 3. Region_Jardim da Penha    0.0357
+ 4. ApptDOW_0                 0.0345
+ 5. Region_Santo Antônio      0.0331
+ 6. Region_São Pedro          0.0319
+ 7. ApptDOW_3                 0.0316
+ 8. Region_Praia do Canto     0.0313
+ 9. Region_Goiabeiras         0.0310
+10. Region_Jardim Camburi     0.0304
+11. LogDaysBetween            0.0301
+12. SchedDOW_2                0.0300
+13. ApptDOW_4                 0.0299
+14. Gender                    0.0297
+15. ApptDOW_1                 0.0293
+16. ApptDOW_2                 0.0292
+17. SMS_received              0.0291
+18. Region_Centro             0.0291
+19. AppointmentMonth          0.0291
+20. Region_Jucutuquara        0.0290
+21. SchedDOW_3                0.0285
+22. SchedDOW_4                0.0285
+23. SchedDOW_1                0.0285
+24. SchedDOW_0                0.0283
+25. Handcap                   0.0280
+26. Region_Maruípe            0.0279
+27. Scholarship               0.0269
+28. Hipertension              0.0266
+29. Diabetes                  0.0264
+30. Alcoholism                0.0263
+31. HealthBurden              0.0257
+32. ApptDOW_5                 0.0114
+33. SchedDOW_5                0.0066
 
 ======================================================================
 DETAILED INTERPRETATION: WHY PATIENTS MISS APPOINTMENTS
@@ -1090,10 +1087,10 @@ PRIVACY GUARANTEES ACHIEVED:
 
 MODEL PERFORMANCE (Privacy-Protected):
    • Best Model: XGBoost
-   • Accuracy: 57.7%
-   • Recall (No-show detection): 79.2%
-   • ROC-AUC: 0.710
-   • Threshold: 0.18 (optimized for F2)
+   • Accuracy: 57.9%
+   • Recall (No-show detection): 79.8%
+   • ROC-AUC: 0.712
+   • Threshold: 0.18 (optimized for accuracy s.t. recall >= 0.8)
 
 KEY FINDINGS:
    1. Lead time is the strongest predictor - shorter waits = better attendance

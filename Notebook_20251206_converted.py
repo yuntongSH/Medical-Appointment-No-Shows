@@ -2063,21 +2063,15 @@ print(df_final_anonymous.describe(include='all'))
 print("\nStep 11b: Feature Engineering")
 print("="*60)
 
-# Feature 1: Lead time categories (more granular)
-# Categories: 0=same day, 1=next day, 2=2-3 days, 3=4-7 days, 4=1-2 weeks, 5=2-4 weeks, 6=more than 4 weeks
-# Note: DaysBetween is already >= 0 after date normalization fix
-df_final_anonymous['LeadTime_Category'] = pd.cut(
-    df_final_anonymous['DaysBetween'],
-    bins=[-1, 0, 1, 3, 7, 14, 30, float('inf')],
-    labels=[0, 1, 2, 3, 4, 5, 6]
-).astype(int)
-print("✓ Created LeadTime_Category (0-6 scale based on days between scheduling and appointment)")
+# Feature 1: Log-transformed DaysBetween to reduce dominance of extreme wait times
+# log1p handles 0 values gracefully: log1p(0) = 0
+df_final_anonymous['LogDaysBetween'] = np.log1p(df_final_anonymous['DaysBetween'])
+print("✓ Created LogDaysBetween (log1p transform to reduce skewness)")
 
-# Feature 2: Is weekend appointment
-df_final_anonymous['IsWeekend'] = (df_final_anonymous['AppointmentDayOfWeek'] >= 5).astype(int)
-print("✓ Created IsWeekend (binary: 1 if appointment is on Saturday or Sunday)")
+# Note: Removed LeadTime_Category (redundant with DaysBetween)
+# Note: Removed IsWeekend (only 39 weekend appointments in 110k - no signal)
 
-# Feature 4: Health burden score (sum of DP-protected conditions)
+# Feature 2: Health burden score (sum of DP-protected conditions)
 df_final_anonymous['HealthBurden'] = (
     df_final_anonymous['Hipertension'] + 
     df_final_anonymous['Diabetes'] + 
@@ -2086,11 +2080,10 @@ df_final_anonymous['HealthBurden'] = (
 )
 print("✓ Created HealthBurden (sum of 4 medical conditions, range 0-4)")
 
-print(f"\nNew features added: LeadTime_Category, IsWeekend, HealthBurden")
+print(f"\nNew features added: LogDaysBetween, HealthBurden")
 print(f"Updated dataset shape: {df_final_anonymous.shape}")
 print(f"\nNew feature distributions:")
-print(f"  LeadTime_Category: {df_final_anonymous['LeadTime_Category'].value_counts().sort_index().to_dict()}")
-print(f"  IsWeekend: {df_final_anonymous['IsWeekend'].value_counts().to_dict()}")
+print(f"  LogDaysBetween: min={df_final_anonymous['LogDaysBetween'].min():.2f}, max={df_final_anonymous['LogDaysBetween'].max():.2f}, mean={df_final_anonymous['LogDaysBetween'].mean():.2f}")
 print(f"  HealthBurden: {df_final_anonymous['HealthBurden'].value_counts().sort_index().to_dict()}")
 
 
@@ -2225,23 +2218,10 @@ df_ml_orig = pd.concat([df_ml_orig.drop(['AppointmentDayOfWeek', 'ScheduledDayOf
                         appt_dow_dummies_orig, sched_dow_dummies_orig], axis=1)
 
 # Feature Engineering for non-anonymized dataset (same as anonymized)
-# Feature 1: Lead time categories (DaysBetween is already >= 0 after date normalization)
-df_ml_orig['LeadTime_Category'] = pd.cut(
-    df_ml_orig['DaysBetween'],
-    bins=[-1, 0, 1, 3, 7, 14, 30, float('inf')],
-    labels=[0, 1, 2, 3, 4, 5, 6]
-).astype(int)
+# Feature 1: Log-transformed DaysBetween
+df_ml_orig['LogDaysBetween'] = np.log1p(df_ml_orig['DaysBetween'])
 
-# Feature 2: Is weekend appointment (use one-hot encoded DOW)
-# Check if ApptDOW_5 or ApptDOW_6 exist (Saturday=5, Sunday=6)
-if 'ApptDOW_5' in df_ml_orig.columns:
-    df_ml_orig['IsWeekend'] = df_ml_orig['ApptDOW_5'].astype(int)
-    if 'ApptDOW_6' in df_ml_orig.columns:
-        df_ml_orig['IsWeekend'] = (df_ml_orig['ApptDOW_5'] | df_ml_orig['ApptDOW_6']).astype(int)
-else:
-    df_ml_orig['IsWeekend'] = 0
-
-# Feature 4: Health burden score (sum of original conditions)
+# Feature 2: Health burden score (sum of original conditions)
 df_ml_orig['HealthBurden'] = (
     df_ml_orig['Hipertension'] + 
     df_ml_orig['Diabetes'] + 
@@ -2303,7 +2283,7 @@ print(f"Non-anonymized dataset ready: {X_orig.shape[0]} records, {X_orig.shape[1
 # 1. **Baseline**: Logistic Regression (simple, interpretable)
 # 2. **Ensemble Models**: Random Forest & XGBoost (strong predictors)
 # 3. **Calibration**: CalibratedClassifierCV for well-calibrated probabilities
-# 4. **Threshold Tuning**: Optimize for F2 score (recall-weighted) since missing a no-show is worse than a false alarm
+# 4. **Threshold Tuning**: Maximize accuracy subject to recall >= 0.80 (balances catching no-shows with overall performance)
 # 5. **Comparison**: Anonymized vs Non-Anonymized to quantify utility loss
 
 # In[28]:
@@ -3022,7 +3002,7 @@ print(f"   • Best Model: {best_model_name}")
 print(f"   • Accuracy: {best_metrics['accuracy']:.1%}")
 print(f"   • Recall (No-show detection): {best_metrics['recall']:.1%}")
 print(f"   • ROC-AUC: {best_metrics['roc_auc']:.3f}")
-print(f"   • Threshold: {best_metrics['threshold']:.2f} (optimized for F2)")
+print(f"   • Threshold: {best_metrics['threshold']:.2f} (optimized for accuracy s.t. recall >= {MIN_RECALL})")
 
 print("\nKEY FINDINGS:")
 print("   1. Lead time is the strongest predictor - shorter waits = better attendance")
