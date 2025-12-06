@@ -699,7 +699,9 @@ print(unique_combinations.nsmallest(10, 'count'))
 print("\nStep 4: Neighbourhood to Region Mapping")
 print("="*60)
 
-# Define neighbourhood to region mapping based on administrative regions
+# Define neighbourhood to region mapping based on official administrative regions of Vitória, ES, Brazil
+# Source: Wikipedia - Lista de bairros de Vitória (Espírito Santo)
+# https://pt.wikipedia.org/wiki/Lista_de_bairros_de_Vit%C3%B3ria_%28Esp%C3%ADrito_Santo%29
 neighbourhood_to_region = {
     'JARDIM DA PENHA': 'Jardim da Penha',
     'MATA DA PRAIA': 'Jardim da Penha',
@@ -1716,8 +1718,8 @@ print(f"  - With p={p}, true value is kept {(1-p)*100:.0f}% of the time")
 # In[24]:
 
 
-# Step 10: Apply Differential Privacy to Medical Conditions
-print("\nStep 10: Applying Differential Privacy to Medical Conditions")
+# Step 10: Apply Differential Privacy to Sensitive Attributes
+print("\nStep 10: Applying Differential Privacy to Sensitive Attributes")
 print("="*60)
 
 # Create a copy for differential privacy application
@@ -1726,41 +1728,46 @@ df_anonymous = df_protected.copy()
 # Note: Handcap has values 0-4, so we'll binarize it first (0 = no disability, 1+ = has disability)
 df_anonymous['Handcap_binary'] = (df_anonymous['Handcap'] > 0).astype(int)
 
-# Apply randomized response to sensitive medical binary attributes
-sensitive_medical_cols = ['Hipertension', 'Diabetes', 'Alcoholism', 'Handcap_binary']
+# Apply randomized response to ALL sensitive binary attributes
+# Including Scholarship (Bolsa Família) - reveals socioeconomic status/poverty
+sensitive_dp_cols = ['Hipertension', 'Diabetes', 'Alcoholism', 'Handcap_binary', 'Scholarship']
+
+print("\nSensitive attributes for DP protection:")
+print("  - Hipertension, Diabetes, Alcoholism, Handcap: Medical conditions (PHI)")
+print("  - Scholarship (Bolsa Família): Socioeconomic status indicator")
 
 print("\nBefore DP - Original distributions:")
-for col in sensitive_medical_cols:
+for col in sensitive_dp_cols:
     original_mean = df_anonymous[col].mean()
     print(f"  {col}: {original_mean:.4f}")
 
 # Apply DP
 print(f"\nApplying randomized response (p={p}, q={q})...")
-for col in sensitive_medical_cols:
+for col in sensitive_dp_cols:
     df_anonymous[f'{col}_DP'] = apply_differential_privacy_to_column(df_anonymous[col], p, q)
 
-epsilon_total = epsilon * len(sensitive_medical_cols)
+epsilon_total = epsilon * len(sensitive_dp_cols)
 print("\nPrivacy parameters:")
 print(f"  p (randomization probability): {p}")
 print(f"  q (probability of 0 when random): {q}")
 print(f"  ε (epsilon - per-attribute budget): {epsilon:.4f}")
-print(f"  ε_total (basic composition across {len(sensitive_medical_cols)} attrs): {epsilon_total:.4f}")
+print(f"  ε_total (basic composition across {len(sensitive_dp_cols)} attrs): {epsilon_total:.4f}")
 print("\nInterpretation:")
 print(f"  - Each sensitive attribute leaks at most {epsilon:.4f} information units")
-print(f"  - Basic composition bound across medical attributes: {epsilon_total:.4f}")
+print(f"  - Basic composition bound across all sensitive attributes: {epsilon_total:.4f}")
 print(f"  - With p={p}, true value is kept {(1-p)*100:.0f}% of the time")
 
 print("\nAfter DP - Noisy distributions:")
-for col in sensitive_medical_cols:
+for col in sensitive_dp_cols:
     dp_mean = df_anonymous[f'{col}_DP'].mean()
     original_mean = df_anonymous[col].mean()
     print(f"  {col}_DP: {dp_mean:.4f} (original: {original_mean:.4f}, diff: {abs(dp_mean-original_mean):.4f})")
 
-# Visualize the effect of DP
-fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+# Visualize the effect of DP (now 5 attributes, use 2x3 grid)
+fig, axes = plt.subplots(2, 3, figsize=(16, 10))
 axes = axes.ravel()
 
-for idx, col in enumerate(sensitive_medical_cols):
+for idx, col in enumerate(sensitive_dp_cols):
     original_vals = df_anonymous[col].value_counts().sort_index()
     dp_vals = df_anonymous[f'{col}_DP'].value_counts().sort_index()
     x = np.arange(2)
@@ -1771,18 +1778,26 @@ for idx, col in enumerate(sensitive_medical_cols):
     axes[idx].bar(x + width/2, dp_counts, width, label='DP (noisy)', alpha=0.7, color='coral')
     axes[idx].set_xlabel('Value')
     axes[idx].set_ylabel('Count')
-    axes[idx].set_title(f"{col.replace('_binary', '')}: Original vs DP")
+    title = col.replace('_binary', '')
+    if col == 'Scholarship':
+        title = 'Scholarship (Bolsa Família)'
+    axes[idx].set_title(f"{title}: Original vs DP")
     axes[idx].set_xticks(x)
     axes[idx].set_xticklabels(['0', '1'])
     axes[idx].legend()
     axes[idx].grid(alpha=0.3, axis='y')
 
-plt.tight_layout()
-plt.savefig(f'{output_dir}/03_correlation_analysis.png', dpi=300, bbox_inches='tight')
-plt.close()
-print(f'  Saved: {output_dir}/04_correlation_analysis.png')
+# Hide the 6th subplot (empty)
+axes[5].axis('off')
 
-print(f"\nDifferential privacy applied to {len(sensitive_medical_cols)} medical attributes")
+plt.tight_layout()
+plt.savefig(f'{output_dir}/11_differential_privacy_comparison.png', dpi=300, bbox_inches='tight')
+plt.close()
+print(f'  Saved: {output_dir}/11_differential_privacy_comparison.png')
+
+print(f"\nDifferential privacy applied to {len(sensitive_dp_cols)} sensitive attributes")
+print(f"  - 4 medical conditions (PHI)")
+print(f"  - 1 socioeconomic indicator (Scholarship/Bolsa Família)")
 print(f"Privacy budget (ε) = {epsilon:.4f} per attribute; ε_total ≈ {epsilon_total:.4f} across attrs (basic composition)")
 print(f"Note: Handcap was binarized (0=no disability, 1=has disability) before DP application")
 
@@ -1952,7 +1967,7 @@ print("\nStep 11: Creating Final Anonymized Dataset")
 print("="*60)
 
 # Select columns for the final anonymized dataset
-# Use generalized quasi-identifiers and DP-protected medical conditions
+# Use generalized quasi-identifiers and DP-protected sensitive attributes
 final_columns = [
     # Generalized quasi-identifiers (k-anonymity compliant)
     'Age_generalized',
@@ -1967,13 +1982,13 @@ final_columns = [
 
     # Behavioral/intervention features (low sensitivity)
     'SMS_received',
-    'Scholarship',
 
-    # DP-protected medical conditions
+    # DP-protected sensitive attributes (medical + socioeconomic)
     'Hipertension_DP',
     'Diabetes_DP',
     'Alcoholism_DP',
     'Handcap_binary_DP',
+    'Scholarship_DP',  # Bolsa Família - now DP-protected
 
     # Target variable
     'NoShow_binary'
@@ -1987,6 +2002,7 @@ df_final_anonymous.rename(columns={
     'Diabetes_DP': 'Diabetes',
     'Alcoholism_DP': 'Alcoholism',
     'Handcap_binary_DP': 'Handcap',
+    'Scholarship_DP': 'Scholarship',
     'Age_generalized': 'Age_Group',
     'NoShow_binary': 'NoShow'
 }, inplace=True)
@@ -2365,21 +2381,32 @@ for dataset in ['Anonymized', 'Non-Anonymized']:
 comparison_df = pd.DataFrame(comparison_rows)
 print(comparison_df)
 
-# Plot ROC-AUC and Recall for quick scan
-fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+# Plot Accuracy, Recall and ROC-AUC for quick scan
+fig, axes = plt.subplots(1, 3, figsize=(16, 5))
 
-sns.barplot(data=comparison_df, x='Model', y='ROC-AUC', hue='Dataset', ax=axes[0])
-axes[0].set_title('ROC-AUC by model')
-axes[0].set_ylim(0.5, 1)
+sns.barplot(data=comparison_df, x='Model', y='Accuracy', hue='Dataset', ax=axes[0])
+axes[0].set_title('Accuracy by Model', fontweight='bold')
+axes[0].set_ylim(0.5, 0.8)
+axes[0].tick_params(axis='x', rotation=15)
+axes[0].grid(alpha=0.3, axis='y')
 
 sns.barplot(data=comparison_df, x='Model', y='Recall', hue='Dataset', ax=axes[1])
-axes[1].set_title('Recall (threshold-tuned) by model')
+axes[1].set_title('Recall (threshold-tuned) by Model', fontweight='bold')
 axes[1].set_ylim(0, 1)
+axes[1].tick_params(axis='x', rotation=15)
+axes[1].grid(alpha=0.3, axis='y')
 
+sns.barplot(data=comparison_df, x='Model', y='ROC-AUC', hue='Dataset', ax=axes[2])
+axes[2].set_title('ROC-AUC by Model', fontweight='bold')
+axes[2].set_ylim(0.5, 1)
+axes[2].tick_params(axis='x', rotation=15)
+axes[2].grid(alpha=0.3, axis='y')
+
+plt.suptitle('Model Performance Comparison: Anonymized vs Non-Anonymized', fontsize=14, fontweight='bold', y=1.02)
 plt.tight_layout()
-plt.savefig(f'{output_dir}/13_model_comparison_rocauc_recall.png', dpi=300, bbox_inches='tight')
+plt.savefig(f'{output_dir}/13_model_comparison.png', dpi=300, bbox_inches='tight')
 plt.close()
-print(f'  Saved: {output_dir}/13_model_comparison_rocauc_recall.png')
+print(f'  Saved: {output_dir}/13_model_comparison.png')
 
 
 # In[30]:

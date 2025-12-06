@@ -574,14 +574,19 @@ Interpretation:
   - Lower epsilon = stronger privacy (harder to infer true values)
   - With p=0.3, true value is kept 70% of the time
 
-Step 10: Applying Differential Privacy to Medical Conditions
+Step 10: Applying Differential Privacy to Sensitive Attributes
 ============================================================
+
+Sensitive attributes for DP protection:
+  - Hipertension, Diabetes, Alcoholism, Handcap: Medical conditions (PHI)
+  - Scholarship (Bolsa Família): Socioeconomic status indicator
 
 Before DP - Original distributions:
   Hipertension: 0.1975
   Diabetes: 0.0721
   Alcoholism: 0.0311
   Handcap_binary: 0.0203
+  Scholarship: 0.0986
 
 Applying randomized response (p=0.3, q=0.5)...
 
@@ -589,22 +594,25 @@ Privacy parameters:
   p (randomization probability): 0.3
   q (probability of 0 when random): 0.5
   ε (epsilon - per-attribute budget): 1.8971
-  ε_total (basic composition across 4 attrs): 7.5885
+  ε_total (basic composition across 5 attrs): 9.4856
 
 Interpretation:
   - Each sensitive attribute leaks at most 1.8971 information units
-  - Basic composition bound across medical attributes: 7.5885
+  - Basic composition bound across all sensitive attributes: 9.4856
   - With p=0.3, true value is kept 70% of the time
 
 After DP - Noisy distributions:
-  Hipertension_DP: 0.2877 (original: 0.1975, diff: 0.0902)
-  Diabetes_DP: 0.2020 (original: 0.0721, diff: 0.1299)
-  Alcoholism_DP: 0.1708 (original: 0.0311, diff: 0.1397)
-  Handcap_binary_DP: 0.1636 (original: 0.0203, diff: 0.1434)
-  Saved: output_png/04_correlation_analysis.png
+  Hipertension_DP: 0.2874 (original: 0.1975, diff: 0.0900)
+  Diabetes_DP: 0.2004 (original: 0.0721, diff: 0.1283)
+  Alcoholism_DP: 0.1734 (original: 0.0311, diff: 0.1423)
+  Handcap_binary_DP: 0.1653 (original: 0.0203, diff: 0.1450)
+  Scholarship_DP: 0.2208 (original: 0.0986, diff: 0.1222)
+  Saved: output_png/11_differential_privacy_comparison.png
 
-Differential privacy applied to 4 medical attributes
-Privacy budget (ε) = 1.8971 per attribute; ε_total ≈ 7.5885 across attrs (basic composition)
+Differential privacy applied to 5 sensitive attributes
+  - 4 medical conditions (PHI)
+  - 1 socioeconomic indicator (Scholarship/Bolsa Família)
+Privacy budget (ε) = 1.8971 per attribute; ε_total ≈ 9.4856 across attrs (basic composition)
 Note: Handcap was binarized (0=no disability, 1=has disability) before DP application
 ======================================================================
 PRIVACY-UTILITY TRADEOFF: Parameter Sweep Analysis
@@ -644,7 +652,7 @@ Step 11: Creating Final Anonymized Dataset
 ============================================================
 
 Final anonymized dataset shape: (110527, 14)
-Columns: ['Age_Group', 'Gender', 'Region', 'DaysBetween', 'AppointmentDayOfWeek', 'AppointmentMonth', 'ScheduledDayOfWeek', 'SMS_received', 'Scholarship', 'Hipertension', 'Diabetes', 'Alcoholism', 'Handcap', 'NoShow']
+Columns: ['Age_Group', 'Gender', 'Region', 'DaysBetween', 'AppointmentDayOfWeek', 'AppointmentMonth', 'ScheduledDayOfWeek', 'SMS_received', 'Hipertension', 'Diabetes', 'Alcoholism', 'Handcap', 'Scholarship', 'NoShow']
 
 First few rows:
   Age_Group Gender           Region  DaysBetween  AppointmentDayOfWeek  \
@@ -659,29 +667,29 @@ First few rows:
 8     18-29      F          Maruípe           -1                     4   
 9     18-29      F        São Pedro            1                     4   
 
-   AppointmentMonth  ScheduledDayOfWeek  SMS_received  Scholarship  \
-0                 4                   4             0            0   
-1                 4                   4             0            0   
-2                 4                   4             0            0   
-3                 4                   4             0            0   
-4                 4                   4             0            0   
-5                 4                   2             0            0   
-6                 4                   2             0            0   
-7                 4                   2             0            0   
-8                 4                   4             0            0   
-9                 4                   2             0            0   
+   AppointmentMonth  ScheduledDayOfWeek  SMS_received  Hipertension  Diabetes  \
+0                 4                   4             0             1         0   
+1                 4                   4             0             0         0   
+2                 4                   4             0             1         1   
+3                 4                   4             0             0         0   
+4                 4                   4             0             0         1   
+5                 4                   2             0             1         1   
+6                 4                   2             0             1         0   
+7                 4                   2             0             0         0   
+8                 4                   4             0             0         1   
+9                 4                   2             0             0         0   
 
-   Hipertension  Diabetes  Alcoholism  Handcap  NoShow  
-0             1         0           0        0       0  
-1             0         0           0        0       0  
-2             1         0           0        0       0  
-3             0         0           0        0       0  
-4             0         1           0        0       0  
-5             1         0           0        0       0  
-6             1         1           0        0       1  
-7             0         0           0        0       1  
-8             0         0           1        0       0  
-9             1         0           0        0       0  
+   Alcoholism  Handcap  Scholarship  NoShow  
+0           0        0            0       0  
+1           0        0            0       0  
+2           0        0            0       0  
+3           0        0            0       0  
+4           1        0            0       0  
+5           0        0            0       0  
+6           0        0            0       1  
+7           1        0            0       1  
+8           0        0            0       0  
+9           1        0            1       0  
 
 ============================================================
 Final Anonymized Dataset Summary:
@@ -699,30 +707,30 @@ min          NaN     NaN      NaN      -7.000000              0.000000
 75%          NaN     NaN      NaN      14.000000              3.000000   
 max          NaN     NaN      NaN     178.000000              5.000000   
 
-        AppointmentMonth  ScheduledDayOfWeek   SMS_received    Scholarship  \
+        AppointmentMonth  ScheduledDayOfWeek   SMS_received   Hipertension  \
 count      110527.000000       110527.000000  110527.000000  110527.000000   
 unique               NaN                 NaN            NaN            NaN   
 top                  NaN                 NaN            NaN            NaN   
 freq                 NaN                 NaN            NaN            NaN   
-mean            5.210048            1.851955       0.321026       0.098646   
-std             0.473780            1.378520       0.466873       0.298187   
+mean            5.210048            1.851955       0.321026       0.287441   
+std             0.473780            1.378520       0.466873       0.452571   
 min             4.000000            0.000000       0.000000       0.000000   
 25%             5.000000            1.000000       0.000000       0.000000   
 50%             5.000000            2.000000       0.000000       0.000000   
-75%             5.000000            3.000000       1.000000       0.000000   
+75%             5.000000            3.000000       1.000000       1.000000   
 max             6.000000            5.000000       1.000000       1.000000   
 
-         Hipertension       Diabetes     Alcoholism        Handcap  \
+             Diabetes     Alcoholism        Handcap    Scholarship  \
 count   110527.000000  110527.000000  110527.000000  110527.000000   
 unique            NaN            NaN            NaN            NaN   
 top               NaN            NaN            NaN            NaN   
 freq              NaN            NaN            NaN            NaN   
-mean         0.287667       0.202032       0.170818       0.163634   
-std          0.452677       0.401518       0.376352       0.369945   
+mean         0.200404       0.173442       0.165263       0.220806   
+std          0.400304       0.378630       0.371419       0.414792   
 min          0.000000       0.000000       0.000000       0.000000   
 25%          0.000000       0.000000       0.000000       0.000000   
 50%          0.000000       0.000000       0.000000       0.000000   
-75%          1.000000       0.000000       0.000000       0.000000   
+75%          0.000000       0.000000       0.000000       0.000000   
 max          1.000000       1.000000       1.000000       1.000000   
 
                NoShow  
@@ -752,7 +760,7 @@ New feature distributions:
   LeadTime_Category: {0: 43781, 1: 6725, 2: 8027, 3: 14552, 4: 11196, 5: 16540, 6: 9706}
   IsSameDay: {0: 66746, 1: 43781}
   IsWeekend: {0: 110488, 1: 39}
-  HealthBurden: {0: 45897, 1: 42431, 2: 18215, 3: 3706, 4: 278}
+  HealthBurden: {0: 45542, 1: 42950, 2: 18008, 3: 3718, 4: 309}
 
 Step 12: Preparing Data for Machine Learning
 ============================================================
@@ -765,10 +773,10 @@ Anonymized dataset shape: (110527, 18)
 Missing values: 0
 
 Anonymized Features (17 features):
-  ['Age_Group', 'Gender', 'Region', 'DaysBetween', 'AppointmentDayOfWeek', 'AppointmentMonth', 'ScheduledDayOfWeek', 'SMS_received', 'Scholarship', 'Hipertension', 'Diabetes', 'Alcoholism', 'Handcap', 'LeadTime_Category', 'IsSameDay', 'IsWeekend', 'HealthBurden']
+  ['Age_Group', 'Gender', 'Region', 'DaysBetween', 'AppointmentDayOfWeek', 'AppointmentMonth', 'ScheduledDayOfWeek', 'SMS_received', 'Hipertension', 'Diabetes', 'Alcoholism', 'Handcap', 'Scholarship', 'LeadTime_Category', 'IsSameDay', 'IsWeekend', 'HealthBurden']
 
 Anonymized Features (17 features) after encoding:
-  ['Age_Group', 'Gender', 'Region', 'DaysBetween', 'AppointmentDayOfWeek', 'AppointmentMonth', 'ScheduledDayOfWeek', 'SMS_received', 'Scholarship', 'Hipertension', 'Diabetes', 'Alcoholism', 'Handcap', 'LeadTime_Category', 'IsSameDay', 'IsWeekend', 'HealthBurden']
+  ['Age_Group', 'Gender', 'Region', 'DaysBetween', 'AppointmentDayOfWeek', 'AppointmentMonth', 'ScheduledDayOfWeek', 'SMS_received', 'Hipertension', 'Diabetes', 'Alcoholism', 'Handcap', 'Scholarship', 'LeadTime_Category', 'IsSameDay', 'IsWeekend', 'HealthBurden']
 Target distribution: No-show rate = 20.19%
 
 ============================================================
@@ -794,25 +802,25 @@ Step 13: Modeling with stratified CV + calibrated probabilities + tuned threshol
 === ANONYMIZED ===
 
 Baseline LogReg: CV calibration + threshold tuning
-  Best threshold (F2): 0.20 | F2: 0.609
-    Accuracy: 0.576 | Recall: 0.833 | ROC-AUC: 0.717 | PR-AUC: 0.342 | F2: 0.616
+  Best threshold (F2): 0.20 | F2: 0.610
+    Accuracy: 0.575 | Recall: 0.832 | ROC-AUC: 0.716 | PR-AUC: 0.341 | F2: 0.615
     Confusion matrix:
-[[13539 12924]
- [ 1120  5576]]
+[[13497 12966]
+ [ 1124  5572]]
 
 Random Forest: CV calibration + threshold tuning
-  Best threshold (F2): 0.20 | F2: 0.584
-    Accuracy: 0.614 | Recall: 0.751 | ROC-AUC: 0.720 | PR-AUC: 0.347 | F2: 0.585
+  Best threshold (F2): 0.20 | F2: 0.583
+    Accuracy: 0.614 | Recall: 0.745 | ROC-AUC: 0.718 | PR-AUC: 0.344 | F2: 0.582
     Confusion matrix:
-[[15320 11143]
- [ 1667  5029]]
+[[15365 11098]
+ [ 1706  4990]]
 
 XGBoost: CV calibration + threshold tuning
-  Best threshold (F2): 0.20 | F2: 0.581
-    Accuracy: 0.610 | Recall: 0.763 | ROC-AUC: 0.722 | PR-AUC: 0.354 | F2: 0.590
+  Best threshold (F2): 0.20 | F2: 0.584
+    Accuracy: 0.607 | Recall: 0.749 | ROC-AUC: 0.718 | PR-AUC: 0.349 | F2: 0.581
     Confusion matrix:
-[[15112 11351]
- [ 1590  5106]]
+[[15107 11356]
+ [ 1682  5014]]
 
 === NON-ANONYMIZED ===
 
@@ -844,21 +852,21 @@ Modeling complete: calibrated, CV-tuned, and threshold-adjusted
 Step 14: Performance comparison
 ============================================================
           Dataset            Model  Threshold  Accuracy  Recall  ROC-AUC  \
-0      Anonymized  Baseline LogReg        0.2     0.576   0.833    0.717   
-1      Anonymized    Random Forest        0.2     0.614   0.751    0.720   
-2      Anonymized          XGBoost        0.2     0.610   0.763    0.722   
+0      Anonymized  Baseline LogReg        0.2     0.575   0.832    0.716   
+1      Anonymized    Random Forest        0.2     0.614   0.745    0.718   
+2      Anonymized          XGBoost        0.2     0.607   0.749    0.718   
 3  Non-Anonymized  Baseline LogReg        0.2     0.573   0.837    0.715   
 4  Non-Anonymized    Random Forest        0.2     0.627   0.759    0.739   
 5  Non-Anonymized          XGBoost        0.2     0.621   0.770    0.742   
 
    PR-AUC     F2  
-0   0.342  0.616  
-1   0.347  0.585  
-2   0.354  0.590  
+0   0.341  0.615  
+1   0.344  0.582  
+2   0.349  0.581  
 3   0.343  0.616  
 4   0.377  0.596  
 5   0.392  0.600  
-  Saved: output_png/13_model_comparison_rocauc_recall.png
+  Saved: output_png/13_model_comparison.png
 
 Step 14b: Feature importance by model
 ============================================================
@@ -879,18 +887,18 @@ TOP 5 FEATURES BY IMPORTANCE
 ============================================================
 
 Random Forest (Anonymized):
-   1. DaysBetween: 0.2286
-   2. Region: 0.1216
-   3. LeadTime_Category: 0.1051
-   4. IsSameDay: 0.0958
-   5. Age_Group: 0.0937
+   1. DaysBetween: 0.2227
+   2. Region: 0.1207
+   3. LeadTime_Category: 0.1055
+   4. Age_Group: 0.0931
+   5. IsSameDay: 0.0931
 
 XGBoost (Anonymized):
-   1. DaysBetween: 0.1675
-   2. IsSameDay: 0.1006
-   3. LeadTime_Category: 0.0845
-   4. Age_Group: 0.0597
-   5. Region: 0.0526
+   1. DaysBetween: 0.1555
+   2. IsSameDay: 0.1410
+   3. LeadTime_Category: 0.0814
+   4. Age_Group: 0.0581
+   5. Region: 0.0496
 
 Random Forest (Non-Anonymized):
    1. DaysBetween: 0.2147
@@ -914,11 +922,11 @@ MODEL PERFORMANCE COMPARISON
 
 Detailed Metrics by Model and Dataset:
              Model         Dataset  Accuracy  Recall  ROC-AUC  PR-AUC      F2
-0  Baseline LogReg      Anonymized    0.5765  0.8327   0.7165  0.3423  0.6157
+0  Baseline LogReg      Anonymized    0.5751  0.8321   0.7158  0.3408  0.6147
 1  Baseline LogReg  Non-Anonymized    0.5728  0.8371   0.7153  0.3431  0.6164
-2    Random Forest      Anonymized    0.6137  0.7510   0.7205  0.3474  0.5854
+2    Random Forest      Anonymized    0.6139  0.7452   0.7178  0.3438  0.5820
 3    Random Forest  Non-Anonymized    0.6270  0.7590   0.7395  0.3773  0.5962
-4          XGBoost      Anonymized    0.6097  0.7625   0.7215  0.3536  0.5904
+4          XGBoost      Anonymized    0.6068  0.7488   0.7176  0.3489  0.5809
 5          XGBoost  Non-Anonymized    0.6211  0.7699   0.7424  0.3918  0.5999
 
 ============================================================
@@ -926,19 +934,19 @@ UTILITY LOSS DUE TO PRIVACY PROTECTION
 ============================================================
 
 Baseline LogReg:
-  Accuracy loss: -0.37%
-  Recall loss: +0.43%
-  ROC-AUC loss: -0.13%
+  Accuracy loss: -0.23%
+  Recall loss: +0.49%
+  ROC-AUC loss: -0.06%
 
 Random Forest:
-  Accuracy loss: +1.33%
-  Recall loss: +0.79%
-  ROC-AUC loss: +1.90%
+  Accuracy loss: +1.31%
+  Recall loss: +1.37%
+  ROC-AUC loss: +2.16%
 
 XGBoost:
-  Accuracy loss: +1.14%
-  Recall loss: +0.73%
-  ROC-AUC loss: +2.09%
+  Accuracy loss: +1.43%
+  Recall loss: +2.11%
+  ROC-AUC loss: +2.48%
   Saved: output_png/14b_privacy_utility_tradeoff.png
 
 ============================================================
@@ -952,23 +960,23 @@ Why do patients miss their scheduled medical appointments?
 
 FEATURE IMPORTANCE RANKING (Model-based)
 --------------------------------------------------
- 1. DaysBetween               0.1675
- 2. IsSameDay                 0.1006
- 3. LeadTime_Category         0.0845
- 4. Age_Group                 0.0597
- 5. Region                    0.0526
- 6. AppointmentDayOfWeek      0.0492
- 7. Scholarship               0.0484
- 8. SMS_received              0.0481
- 9. ScheduledDayOfWeek        0.0481
-10. AppointmentMonth          0.0475
-11. Handcap                   0.0467
-12. Gender                    0.0463
-13. Hipertension              0.0455
-14. Diabetes                  0.0453
-15. HealthBurden              0.0452
-16. Alcoholism                0.0438
-17. IsWeekend                 0.0209
+ 1. DaysBetween               0.1555
+ 2. IsSameDay                 0.1410
+ 3. LeadTime_Category         0.0814
+ 4. Age_Group                 0.0581
+ 5. Region                    0.0496
+ 6. AppointmentDayOfWeek      0.0475
+ 7. ScheduledDayOfWeek        0.0470
+ 8. SMS_received              0.0464
+ 9. Hipertension              0.0453
+10. AppointmentMonth          0.0451
+11. Alcoholism                0.0443
+12. Scholarship               0.0434
+13. Gender                    0.0432
+14. HealthBurden              0.0429
+15. Diabetes                  0.0427
+16. Handcap                   0.0424
+17. IsWeekend                 0.0244
 
 ======================================================================
 DETAILED INTERPRETATION: WHY PATIENTS MISS APPOINTMENTS
@@ -1011,9 +1019,9 @@ PRIVACY GUARANTEES ACHIEVED:
 
 MODEL PERFORMANCE (Privacy-Protected):
    • Best Model: XGBoost
-   • Accuracy: 61.0%
-   • Recall (No-show detection): 76.3%
-   • ROC-AUC: 0.722
+   • Accuracy: 60.7%
+   • Recall (No-show detection): 74.9%
+   • ROC-AUC: 0.718
    • Threshold: 0.20 (optimized for F2)
 
 KEY FINDINGS:
@@ -1034,7 +1042,7 @@ ACTIONABLE RECOMMENDATIONS:
 ANALYSIS COMPLETE - ALL PLOTS SAVED
 ======================================================================
 
-Total plots saved: 15
+Total plots saved: 16
 Output directory: output_png/
 
 Saved plots:
@@ -1049,7 +1057,8 @@ Saved plots:
   - output_png/09_ldiversity_comprehensive.png
   - output_png/09b_ldiversity_before_after_comparison.png
   - output_png/10b_dp_privacy_utility_tradeoff.png
-  - output_png/13_model_comparison_rocauc_recall.png
+  - output_png/11_differential_privacy_comparison.png
+  - output_png/13_model_comparison.png
   - output_png/14_feature_importance_comparison.png
   - output_png/14b_privacy_utility_tradeoff.png
   - output_png/15_final_feature_importance.png
