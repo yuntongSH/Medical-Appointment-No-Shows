@@ -142,20 +142,20 @@ Name: Age, dtype: float64
 
 Age range: -1 to 115
 Negative or suspicious ages: 1
-  Saved: output_png/01_quick_look_eda.png
+  Saved: output_png/01b_age_distribution_raw.png
 Target Variable Analysis: No-show
 ============================================================
 
 No-show distribution:
 No: 88208 (79.81%)
 Yes: 22319 (20.19%)
-  Saved: output_png/03_noshow_distribution.png
+  Saved: output_png/02_noshow_distribution.png
 
 Warning: Class imbalance: 79.8% showed up vs 20.2% no-show
 ======================================================================
 CORRELATION ANALYSIS: Understanding Feature Relationships
 ======================================================================
-  Saved: output_png/04_correlation_analysis.png
+  Saved: output_png/03_correlation_analysis.png
 
 KEY CORRELATION INSIGHTS:
 --------------------------------------------------
@@ -174,7 +174,7 @@ Interpretation:
 ======================================================================
 CROSS-TABULATION: No-show Rates by Feature Categories
 ======================================================================
-  Saved: output_png/05_crosstab_analysis.png
+  Saved: output_png/04_crosstab_analysis.png
 
 KEY FINDINGS FROM CROSS-TABULATION:
 --------------------------------------------------
@@ -194,11 +194,11 @@ Step 2: Data Cleaning
 ============================================================
 Dropped 1 rows with negative age values
 Capped 7 ages above 100
-Fixed 5 records with negative DaysBetween (appointment before scheduling)
+Dropped 5 rows with negative DaysBetween (data errors)
 Created temporal features: DaysBetween, AppointmentDayOfWeek, AppointmentMonth, ScheduledDayOfWeek
 Removed exact timestamps
 
-Cleaned data shape: (110526, 15)
+Cleaned data shape: (110521, 15)
 Step 3: Re-identification Risk Analysis
 ============================================================
 
@@ -229,9 +229,9 @@ Geographic regions: 9
 
 Region distribution:
 Region
-Maruípe            27515
-Goiabeiras         18561
-Santo Antônio      15907
+Maruípe            27514
+Goiabeiras         18560
+Santo Antônio      15904
 Jucutuquara        11204
 São Pedro          11071
 Centro              8963
@@ -239,7 +239,7 @@ Jardim Camburi      7814
 Jardim da Penha     5889
 Praia do Canto      3602
 Name: count, dtype: int64
-  Saved: output_png/06_region_distribution.png
+  Saved: output_png/05_region_distribution.png
 
 Neighbourhoods successfully grouped into 9 geographic regions
 
@@ -249,9 +249,9 @@ Step 4b: Region Characteristics Analysis
 Region Summary Statistics:
                  NoShow_Rate  Count  Avg_Age  Scholarship_Rate  \
 Region                                                           
-Maruípe                0.202  27515   35.145             0.131   
-Goiabeiras             0.198  18561   35.835             0.076   
-Santo Antônio          0.217  15907   35.300             0.122   
+Maruípe                0.202  27514   35.146             0.131   
+Goiabeiras             0.198  18560   35.835             0.076   
+Santo Antônio          0.216  15904   35.298             0.122   
 Jucutuquara            0.207  11204   37.677             0.096   
 São Pedro              0.208  11071   34.466             0.147   
 Centro                 0.201   8963   39.632             0.084   
@@ -270,27 +270,27 @@ Centro                       0.239          0.081            0.040
 Jardim Camburi               0.068          0.034            0.001  
 Jardim da Penha              0.233          0.078            0.006  
 Praia do Canto               0.178          0.078            0.036  
-  Saved: output_png/07_region_characteristics.png
+  Saved: output_png/06_region_characteristics.png
 
 Geographic regions preserve meaningful patterns:
-  - No-show rates vary from 0.167 to 0.217
+  - No-show rates vary from 0.167 to 0.216
   - Average age varies from 34.5 to 43.7 years
   - Scholarship rates vary from 0.010 to 0.147
 
 Neighbourhood Distribution by Region:
 ============================================================
 
-Maruípe: 15 neighbourhoods, 27,515 appointments
+Maruípe: 15 neighbourhoods, 27,514 appointments
   Top 5: TABUAZEIRO, SANTA MARTHA, JESUS DE NAZARETH, ANDORINHAS, DA PENHA
   No-show rate: 0.202
 
-Goiabeiras: 16 neighbourhoods, 18,561 appointments
+Goiabeiras: 16 neighbourhoods, 18,560 appointments
   Top 5: MARIA ORTIZ, JABOUR, SÃO JOSÉ, REDENÇÃO, JOANA D´ARC
   No-show rate: 0.198
 
-Santo Antônio: 7 neighbourhoods, 15,907 appointments
+Santo Antônio: 7 neighbourhoods, 15,904 appointments
   Top 5: RESISTÊNCIA, ITARARÉ, SANTO ANTÔNIO, ILHA DO PRÍNCIPE, SANTA TEREZA
-  No-show rate: 0.217
+  No-show rate: 0.216
 
 Jucutuquara: 11 neighbourhoods, 11,204 appointments
   Top 5: BONFIM, CARATOÍRA, ILHA DE SANTA MARIA, CRUZAMENTO, BENTO FERREIRA
@@ -320,13 +320,13 @@ Step 5: Age Generalization
 ============================================================
 Age distribution after generalization:
 Age_generalized
-0-14     23257
-15-24    14010
-25-44    28865
+0-14     23256
+15-24    14008
+25-44    28864
 45-64    29992
-65+      14402
+65+      14401
 Name: count, dtype: int64
-  Saved: output_png/08_age_generalization.png
+  Saved: output_png/07_age_generalization.png
 
 Step 6: K-Anonymity Check After Generalization
 ============================================================
@@ -339,15 +339,15 @@ Percentage of records at risk (k<5): 0.00%
 
 Distribution of group sizes (k values):
 count      90.000000
-mean     1228.066667
-std       987.859925
+mean     1228.011111
+std       987.827084
 min       121.000000
 25%       506.000000
 50%       982.000000
 75%      1634.000000
 max      5401.000000
 Name: count, dtype: float64
-  Saved: output_png/02_age_distribution.png
+  Saved: output_png/08_age_distribution.png
 
 Minimum k-value: 121
 Maximum k-value: 5401
@@ -356,8 +356,8 @@ Median k-value: 982.0
 Step 7: Comprehensive L-Diversity Analysis
 ============================================================
 
-Binarized Handcap: {0: 108285, 1: 2042, 2: 183, 3: 13, 4: 3}
-  → Handcap_binary: {0: 108285, 1: 2241}
+Binarized Handcap: {0: 108282, 1: 2040, 2: 183, 3: 13, 4: 3}
+  → Handcap_binary: {0: 108282, 1: 2239}
 
 Sensitive attributes requiring L-diversity = 2:
   - Alcoholism
@@ -393,7 +393,7 @@ Age_generalized Gender          Region  group_size  Alcoholism_l  Hipertension_l
            0-14      F         Maruípe        3146             1               2           2                 2              2                1
            0-14      F      Goiabeiras        2070             1               1           2                 2              2                1
            0-14      M   Santo Antônio        1855             2               1           1                 2              2                1
-          15-24      F      Goiabeiras        1760             1               2           2                 2              2                1
+          15-24      F      Goiabeiras        1759             1               2           2                 2              2                1
            0-14      F   Santo Antônio        1726             1               2           2                 2              2                1
            0-14      M       São Pedro        1483             1               1           1                 2              2                1
            0-14      F       São Pedro        1217             2               2           1                 2              2                1
@@ -423,10 +423,10 @@ Approach:
   3. Preserve global distribution as much as possible
 
 BEFORE PERTURBATION:
-  Total records: 110,526
+  Total records: 110,521
   Total groups: 90
   Failing groups (min_l=1): 34
-  Records in failing groups: 28,345 (25.65%)
+  Records in failing groups: 28,344 (25.65%)
 
 ============================================================
 APPLYING VALUE PERTURBATION:
@@ -442,7 +442,7 @@ Processing: Alcoholism
 Processing: Hipertension
   Groups failing l=2: 14 → 0
   Values perturbed: 42
-  Original distribution: {0: np.float64(0.8028), 1: np.float64(0.1972)}
+  Original distribution: {0: np.float64(0.8027), 1: np.float64(0.1973)}
   New distribution:      {0: np.float64(0.8024), 1: np.float64(0.1976)}
   Distribution shift (TVD): 0.0004
 
@@ -476,7 +476,7 @@ PERTURBATION SUMMARY:
   Quasi-identifiers: UNCHANGED (no generalization!)
 
 AFTER VALUE PERTURBATION:
-  Total records: 110,526 (100% retained)
+  Total records: 110,521 (100% retained)
   Total perturbations: 174 (0.1574%)
 
 ============================================================
@@ -509,7 +509,7 @@ PRIVACY ENFORCEMENT COMPLETE (VALUE PERTURBATION)
 ============================================================
 Dataset now satisfies L-DIVERSITY = 2 for ALL sensitive attributes
 K-anonymity maintained with k >= 121
-110,526 records retained (100% of original)
+110,521 records retained (100% of original)
 
 ADVANTAGES of Value Perturbation:
   ✓ No records suppressed (100% data retention)
@@ -536,8 +536,11 @@ KEY RESULTS:
   • Records with l=2: 74.4% → 100.0%
   • Perturbation rate: 0.1574%
 
-Step 8: T-Closeness Analysis
+Step 8: T-Closeness Analysis (Monitoring Only)
 ============================================================
+NOTE: NoShow is NOT treated as sensitive for L-diversity/T-closeness enforcement.
+      This analysis monitors target distribution preservation in groups.
+
 Global No-show rate: 0.2019
 
 T-Closeness Analysis (t=0.2):
@@ -549,7 +552,7 @@ Groups violating t-closeness (top 10 by size):
 Empty DataFrame
 Columns: [Age_generalized, Gender, Region, group_size, Alcoholism_l, Hipertension_l, Diabetes_l, Handcap_binary_l, Scholarship_l, min_l_diversity, noshow_rate, distance_from_global, t_close]
 Index: []
-  Saved: output_png/03_noshow_distribution.png
+  Saved: output_png/09c_tcloseness_analysis.png
                               Metric                      Before  \
 0           k-anonymity (group size)             min=1, median=6   
 1                   Records with k<5  4750 combos / 9.5% records   
@@ -603,11 +606,11 @@ Interpretation:
   - With p=0.3, true value is kept 70% of the time
 
 After DP - Noisy distributions:
-  Hipertension_DP: 0.2894 (original: 0.1976, diff: 0.0918)
-  Diabetes_DP: 0.1990 (original: 0.0722, diff: 0.1267)
-  Alcoholism_DP: 0.1711 (original: 0.0309, diff: 0.1402)
-  Handcap_binary_DP: 0.1653 (original: 0.0203, diff: 0.1451)
-  Scholarship_DP: 0.2184 (original: 0.0984, diff: 0.1200)
+  Hipertension_DP: 0.2893 (original: 0.1976, diff: 0.0916)
+  Diabetes_DP: 0.2023 (original: 0.0722, diff: 0.1300)
+  Alcoholism_DP: 0.1718 (original: 0.0309, diff: 0.1409)
+  Handcap_binary_DP: 0.1631 (original: 0.0203, diff: 0.1428)
+  Scholarship_DP: 0.2176 (original: 0.0984, diff: 0.1192)
   Saved: output_png/11_differential_privacy_comparison.png
 
 Differential privacy applied to 5 sensitive attributes
@@ -621,26 +624,26 @@ PRIVACY-UTILITY TRADEOFF: Parameter Sweep Analysis
 
 Sweep 1: Differential Privacy (ε) vs Model Performance
 --------------------------------------------------
-  ε=2.94 (p=0.1): Acc=0.574, Recall=0.836, F1=0.442
-  ε=2.20 (p=0.2): Acc=0.573, Recall=0.834, F1=0.441
-  ε=1.73 (p=0.3): Acc=0.572, Recall=0.836, F1=0.441
-  ε=1.39 (p=0.4): Acc=0.574, Recall=0.829, F1=0.440
-  ε=1.10 (p=0.5): Acc=0.572, Recall=0.834, F1=0.440
-  ε=0.85 (p=0.6): Acc=0.572, Recall=0.835, F1=0.441
-  ε=0.62 (p=0.7): Acc=0.573, Recall=0.831, F1=0.440
-  ε=0.41 (p=0.8): Acc=0.571, Recall=0.834, F1=0.440
+  ε=2.94 (p=0.1): Acc=0.575, Recall=0.836, F1=0.443
+  ε=2.20 (p=0.2): Acc=0.569, Recall=0.842, F1=0.441
+  ε=1.73 (p=0.3): Acc=0.570, Recall=0.841, F1=0.441
+  ε=1.39 (p=0.4): Acc=0.571, Recall=0.838, F1=0.441
+  ε=1.10 (p=0.5): Acc=0.571, Recall=0.838, F1=0.441
+  ε=0.85 (p=0.6): Acc=0.570, Recall=0.840, F1=0.441
+  ε=0.62 (p=0.7): Acc=0.570, Recall=0.839, F1=0.440
+  ε=0.41 (p=0.8): Acc=0.572, Recall=0.840, F1=0.442
   Saved: output_png/10b_dp_privacy_utility_tradeoff.png
 
 Summary Table: DP Parameter Sweep
    epsilon    p  accuracy  recall     f1
-0    2.944  0.1     0.574   0.836  0.442
-1    2.197  0.2     0.573   0.834  0.441
-2    1.735  0.3     0.572   0.836  0.441
-3    1.386  0.4     0.574   0.829  0.440
-4    1.099  0.5     0.572   0.834  0.440
-5    0.847  0.6     0.572   0.835  0.441
-6    0.619  0.7     0.573   0.831  0.440
-7    0.405  0.8     0.571   0.834  0.440
+0    2.944  0.1     0.575   0.836  0.443
+1    2.197  0.2     0.569   0.842  0.441
+2    1.735  0.3     0.570   0.841  0.441
+3    1.386  0.4     0.571   0.838  0.441
+4    1.099  0.5     0.571   0.838  0.441
+5    0.847  0.6     0.570   0.840  0.441
+6    0.619  0.7     0.570   0.839  0.440
+7    0.405  0.8     0.572   0.840  0.442
 
 KEY INSIGHTS:
 --------------------------------------------------
@@ -652,7 +655,7 @@ KEY INSIGHTS:
 Step 11: Creating Final Anonymized Dataset
 ============================================================
 
-Final anonymized dataset shape: (110526, 14)
+Final anonymized dataset shape: (110521, 14)
 Columns: ['Age_Group', 'Gender', 'Region', 'DaysBetween', 'AppointmentDayOfWeek', 'AppointmentMonth', 'ScheduledDayOfWeek', 'SMS_received', 'Hipertension', 'Diabetes', 'Alcoholism', 'Handcap', 'Scholarship', 'NoShow']
 
 First few rows:
@@ -669,39 +672,39 @@ First few rows:
 9     15-24      F        São Pedro            2                     4   
 
    AppointmentMonth  ScheduledDayOfWeek  SMS_received  Hipertension  Diabetes  \
-0                 4                   4             0             1         0   
+0                 4                   4             0             0         0   
 1                 4                   4             0             0         0   
 2                 4                   4             0             0         0   
 3                 4                   4             0             0         0   
-4                 4                   4             0             1         0   
-5                 4                   2             0             1         0   
+4                 4                   4             0             1         1   
+5                 4                   2             0             1         1   
 6                 4                   2             0             0         0   
 7                 4                   2             0             0         0   
 8                 4                   4             0             0         0   
 9                 4                   2             0             0         0   
 
    Alcoholism  Handcap  Scholarship  NoShow  
-0           0        0            0       0  
+0           0        0            1       0  
 1           0        0            0       0  
-2           1        0            0       0  
-3           0        1            0       0  
-4           0        0            0       0  
+2           0        0            0       0  
+3           0        0            0       0  
+4           1        1            0       0  
 5           0        0            0       0  
-6           0        0            1       1  
-7           0        0            0       1  
-8           0        0            0       0  
+6           0        1            0       1  
+7           0        1            0       1  
+8           0        1            0       0  
 9           0        0            0       0  
 
 ============================================================
 Final Anonymized Dataset Summary:
 ============================================================
        Age_Group  Gender   Region    DaysBetween  AppointmentDayOfWeek  \
-count     110526  110526   110526  110526.000000         110526.000000   
+count     110521  110521   110521  110521.000000         110521.000000   
 unique         5       2        9            NaN                   NaN   
 top        45-64       F  Maruípe            NaN                   NaN   
-freq       29992   71839    27515            NaN                   NaN   
-mean         NaN     NaN      NaN      10.183884              1.858260   
-std          NaN     NaN      NaN      15.254962              1.371667   
+freq       29992   71836    27514            NaN                   NaN   
+mean         NaN     NaN      NaN      10.184345              1.858280   
+std          NaN     NaN      NaN      15.255153              1.371677   
 min          NaN     NaN      NaN       0.000000              0.000000   
 25%          NaN     NaN      NaN       0.000000              1.000000   
 50%          NaN     NaN      NaN       4.000000              2.000000   
@@ -709,12 +712,12 @@ min          NaN     NaN      NaN       0.000000              0.000000
 max          NaN     NaN      NaN     179.000000              5.000000   
 
         AppointmentMonth  ScheduledDayOfWeek   SMS_received   Hipertension  \
-count      110526.000000       110526.000000  110526.000000  110526.000000   
+count      110521.000000       110521.000000  110521.000000  110521.000000   
 unique               NaN                 NaN            NaN            NaN   
 top                  NaN                 NaN            NaN            NaN   
 freq                 NaN                 NaN            NaN            NaN   
-mean            5.210041            1.851971       0.321029       0.289380   
-std             0.473776            1.378515       0.466874       0.453477   
+mean            5.210051            1.851965       0.321043       0.289257   
+std             0.473785            1.378539       0.466879       0.453420   
 min             4.000000            0.000000       0.000000       0.000000   
 25%             5.000000            1.000000       0.000000       0.000000   
 50%             5.000000            2.000000       0.000000       0.000000   
@@ -722,12 +725,12 @@ min             4.000000            0.000000       0.000000       0.000000
 max             6.000000            5.000000       1.000000       1.000000   
 
              Diabetes     Alcoholism        Handcap    Scholarship  \
-count   110526.000000  110526.000000  110526.000000  110526.000000   
+count   110521.000000  110521.000000  110521.000000  110521.000000   
 unique            NaN            NaN            NaN            NaN   
 top               NaN            NaN            NaN            NaN   
 freq              NaN            NaN            NaN            NaN   
-mean         0.198994       0.171136       0.165328       0.218392   
-std          0.399245       0.376630       0.371478       0.413157   
+mean         0.202278       0.171814       0.163073       0.217606   
+std          0.401700       0.377220       0.369434       0.412620   
 min          0.000000       0.000000       0.000000       0.000000   
 25%          0.000000       0.000000       0.000000       0.000000   
 50%          0.000000       0.000000       0.000000       0.000000   
@@ -735,12 +738,12 @@ min          0.000000       0.000000       0.000000       0.000000
 max          1.000000       1.000000       1.000000       1.000000   
 
                NoShow  
-count   110526.000000  
+count   110521.000000  
 unique            NaN  
 top               NaN  
 freq              NaN  
-mean         0.201934  
-std          0.401445  
+mean         0.201898  
+std          0.401419  
 min          0.000000  
 25%          0.000000  
 50%          0.000000  
@@ -750,14 +753,15 @@ max          1.000000
 Step 11b: Feature Engineering
 ============================================================
 ✓ Created LogDaysBetween (log1p transform to reduce skewness)
-✓ Created HealthBurden (sum of 4 medical conditions, range 0-4)
+✓ Created HealthBurden (sum of 4 DP-protected conditions, range 0-4)
+  Note: Derived from DP-protected values to ensure logical consistency
 
 New features added: LogDaysBetween, HealthBurden
-Updated dataset shape: (110526, 16)
+Updated dataset shape: (110521, 16)
 
 New feature distributions:
   LogDaysBetween: min=0.00, max=5.19, mean=1.54
-  HealthBurden: {0: 45703, 1: 42803, 2: 17972, 3: 3773, 4: 275}
+  HealthBurden: {0: 45575, 1: 42784, 2: 18218, 3: 3659, 4: 285}
 
 Step 12: Preparing Data for Machine Learning
 ============================================================
@@ -766,7 +770,7 @@ Step 12: Preparing Data for Machine Learning
 PREPARING ANONYMIZED DATASET
 ============================================================
 
-Anonymized dataset shape: (110526, 35)
+Anonymized dataset shape: (110521, 35)
 Missing values: 0
 
 Anonymized Features (33 features):
@@ -782,7 +786,7 @@ PREPARING NON-ANONYMIZED DATASET
 ✓ Applied same feature engineering to non-anonymized dataset
 ✓ Used one-hot encoding for Neighbourhood (81 categories) and weekdays
 
-Non-anonymized dataset shape: (110526, 105)
+Non-anonymized dataset shape: (110521, 105)
 Non-anonymized Features (105 features):
   ['Gender', 'Age', 'Scholarship', 'Hipertension', 'Diabetes', 'Alcoholism', 'Handcap', 'SMS_received', 'DaysBetween', 'AppointmentMonth', 'Nbhd_AEROPORTO', 'Nbhd_ANDORINHAS', 'Nbhd_ANTÔNIO HONÓRIO', 'Nbhd_ARIOVALDO FAVALESSA', 'Nbhd_BARRO VERMELHO', 'Nbhd_BELA VISTA', 'Nbhd_BENTO FERREIRA', 'Nbhd_BOA VISTA', 'Nbhd_BONFIM', 'Nbhd_CARATOÍRA', 'Nbhd_CENTRO', 'Nbhd_COMDUSA', 'Nbhd_CONQUISTA', 'Nbhd_CONSOLAÇÃO', 'Nbhd_CRUZAMENTO', 'Nbhd_DA PENHA', 'Nbhd_DE LOURDES', 'Nbhd_DO CABRAL', 'Nbhd_DO MOSCOSO', 'Nbhd_DO QUADRO', 'Nbhd_ENSEADA DO SUÁ', 'Nbhd_ESTRELINHA', 'Nbhd_FONTE GRANDE', 'Nbhd_FORTE SÃO JOÃO', 'Nbhd_FRADINHOS', 'Nbhd_GOIABEIRAS', 'Nbhd_GRANDE VITÓRIA', 'Nbhd_GURIGICA', 'Nbhd_HORTO', 'Nbhd_ILHA DAS CAIEIRAS', 'Nbhd_ILHA DE SANTA MARIA', 'Nbhd_ILHA DO BOI', 'Nbhd_ILHA DO FRADE', 'Nbhd_ILHA DO PRÍNCIPE', 'Nbhd_ILHAS OCEÂNICAS DE TRINDADE', 'Nbhd_INHANGUETÁ', 'Nbhd_ITARARÉ', 'Nbhd_JABOUR', 'Nbhd_JARDIM CAMBURI', 'Nbhd_JARDIM DA PENHA', 'Nbhd_JESUS DE NAZARETH', 'Nbhd_JOANA D´ARC', 'Nbhd_JUCUTUQUARA', 'Nbhd_MARIA ORTIZ', 'Nbhd_MARUÍPE', 'Nbhd_MATA DA PRAIA', 'Nbhd_MONTE BELO', 'Nbhd_MORADA DE CAMBURI', 'Nbhd_MÁRIO CYPRESTE', 'Nbhd_NAZARETH', 'Nbhd_NOVA PALESTINA', 'Nbhd_PARQUE INDUSTRIAL', 'Nbhd_PARQUE MOSCOSO', 'Nbhd_PIEDADE', 'Nbhd_PONTAL DE CAMBURI', 'Nbhd_PRAIA DO CANTO', 'Nbhd_PRAIA DO SUÁ', 'Nbhd_REDENÇÃO', 'Nbhd_REPÚBLICA', 'Nbhd_RESISTÊNCIA', 'Nbhd_ROMÃO', 'Nbhd_SANTA CECÍLIA', 'Nbhd_SANTA CLARA', 'Nbhd_SANTA HELENA', 'Nbhd_SANTA LUÍZA', 'Nbhd_SANTA LÚCIA', 'Nbhd_SANTA MARTHA', 'Nbhd_SANTA TEREZA', 'Nbhd_SANTO ANDRÉ', 'Nbhd_SANTO ANTÔNIO', 'Nbhd_SANTOS DUMONT', 'Nbhd_SANTOS REIS', 'Nbhd_SEGURANÇA DO LAR', 'Nbhd_SOLON BORGES', 'Nbhd_SÃO BENEDITO', 'Nbhd_SÃO CRISTÓVÃO', 'Nbhd_SÃO JOSÉ', 'Nbhd_SÃO PEDRO', 'Nbhd_TABUAZEIRO', 'Nbhd_UNIVERSITÁRIO', 'Nbhd_VILA RUBIM', 'ApptDOW_0', 'ApptDOW_1', 'ApptDOW_2', 'ApptDOW_3', 'ApptDOW_4', 'ApptDOW_5', 'SchedDOW_0', 'SchedDOW_1', 'SchedDOW_2', 'SchedDOW_3', 'SchedDOW_4', 'SchedDOW_5', 'LogDaysBetween', 'HealthBurden']
 Missing values: 0
@@ -791,8 +795,8 @@ Target distribution: No-show rate = 20.19%
 ============================================================
 DATA PREPARATION COMPLETE
 ============================================================
-Anonymized dataset ready: 110526 records, 33 features
-Non-anonymized dataset ready: 110526 records, 105 features
+Anonymized dataset ready: 110521 records, 33 features
+Non-anonymized dataset ready: 110521 records, 105 features
 
 Step 13: Modeling with stratified CV + calibrated probabilities + tuned threshold
 ============================================================
@@ -801,66 +805,66 @@ Objective: Maximize accuracy subject to recall >= 0.8
 Using group-based split by PatientId to prevent data leakage
 
 === ANONYMIZED ===
-  Group-based split: 77228 train, 33298 test
+  Group-based split: 77224 train, 33297 test
   Unique patients: 43608 train, 18690 test
 
 Baseline LogReg: CV calibration + threshold tuning (acc s.t. recall>=0.8)
-  Best threshold: 0.15 | CV Accuracy: 0.574
-    Accuracy: 0.569 | Recall: 0.821 | Precision: 0.298
-    Specificity: 0.505 | ROC-AUC: 0.712 | Brier: 0.1487
-    F2: 0.608 | Flagged for intervention: 18,696 (56.1%)
+  Best threshold: 0.16 | CV Accuracy: 0.587
+    Accuracy: 0.580 | Recall: 0.797 | Precision: 0.300
+    Specificity: 0.524 | ROC-AUC: 0.712 | Brier: 0.1487
+    F2: 0.599 | Flagged for intervention: 18,026 (54.1%)
     Confusion matrix:
-[[13386 13126]
- [ 1216  5570]]
+[[13895 12617]
+ [ 1376  5409]]
 
 Random Forest: CV calibration + threshold tuning (acc s.t. recall>=0.8)
   Best threshold: 0.19 | CV Accuracy: 0.593
-    Accuracy: 0.588 | Recall: 0.796 | Precision: 0.305
-    Specificity: 0.535 | ROC-AUC: 0.719 | Brier: 0.1469
-    F2: 0.602 | Flagged for intervention: 17,732 (53.3%)
+    Accuracy: 0.587 | Recall: 0.792 | Precision: 0.303
+    Specificity: 0.534 | ROC-AUC: 0.718 | Brier: 0.1471
+    F2: 0.599 | Flagged for intervention: 17,727 (53.2%)
     Confusion matrix:
-[[14180 12332]
- [ 1386  5400]]
+[[14161 12351]
+ [ 1409  5376]]
 
 XGBoost: CV calibration + threshold tuning (acc s.t. recall>=0.8)
-  Best threshold: 0.18 | CV Accuracy: 0.582
-    Accuracy: 0.578 | Recall: 0.803 | Precision: 0.300
-    Specificity: 0.521 | ROC-AUC: 0.716 | Brier: 0.1480
-    F2: 0.601 | Flagged for intervention: 18,146 (54.5%)
+  Best threshold: 0.18 | CV Accuracy: 0.580
+    Accuracy: 0.576 | Recall: 0.802 | Precision: 0.299
+    Specificity: 0.519 | ROC-AUC: 0.714 | Brier: 0.1481
+    F2: 0.600 | Flagged for intervention: 18,199 (54.7%)
     Confusion matrix:
-[[13813 12699]
- [ 1339  5447]]
+[[13754 12758]
+ [ 1344  5441]]
 
 === NON-ANONYMIZED ===
-  Group-based split: 77228 train, 33298 test
+  Group-based split: 77224 train, 33297 test
   Unique patients: 43608 train, 18690 test
 
 Baseline LogReg: CV calibration + threshold tuning (acc s.t. recall>=0.8)
-  Best threshold: 0.16 | CV Accuracy: 0.585
-    Accuracy: 0.579 | Recall: 0.803 | Precision: 0.301
-    Specificity: 0.522 | ROC-AUC: 0.714 | Brier: 0.1483
-    F2: 0.602 | Flagged for intervention: 18,122 (54.4%)
+  Best threshold: 0.16 | CV Accuracy: 0.584
+    Accuracy: 0.580 | Recall: 0.802 | Precision: 0.301
+    Specificity: 0.523 | ROC-AUC: 0.714 | Brier: 0.1482
+    F2: 0.602 | Flagged for intervention: 18,084 (54.3%)
     Confusion matrix:
-[[13837 12675]
- [ 1339  5447]]
+[[13869 12643]
+ [ 1344  5441]]
 
 Random Forest: CV calibration + threshold tuning (acc s.t. recall>=0.8)
   Best threshold: 0.21 | CV Accuracy: 0.607
-    Accuracy: 0.599 | Recall: 0.791 | Precision: 0.311
+    Accuracy: 0.599 | Recall: 0.791 | Precision: 0.310
     Specificity: 0.550 | ROC-AUC: 0.730 | Brier: 0.1451
-    F2: 0.604 | Flagged for intervention: 17,287 (51.9%)
+    F2: 0.604 | Flagged for intervention: 17,305 (52.0%)
     Confusion matrix:
-[[14593 11919]
- [ 1418  5368]]
+[[14572 11940]
+ [ 1420  5365]]
 
 XGBoost: CV calibration + threshold tuning (acc s.t. recall>=0.8)
-  Best threshold: 0.19 | CV Accuracy: 0.608
-    Accuracy: 0.598 | Recall: 0.794 | Precision: 0.310
-    Specificity: 0.547 | ROC-AUC: 0.729 | Brier: 0.1456
-    F2: 0.605 | Flagged for intervention: 17,384 (52.2%)
+  Best threshold: 0.19 | CV Accuracy: 0.607
+    Accuracy: 0.598 | Recall: 0.790 | Precision: 0.309
+    Specificity: 0.549 | ROC-AUC: 0.729 | Brier: 0.1457
+    F2: 0.603 | Flagged for intervention: 17,310 (52.0%)
     Confusion matrix:
-[[14515 11997]
- [ 1399  5387]]
+[[14559 11953]
+ [ 1428  5357]]
 
 ============================================================
 Modeling complete: calibrated, CV-tuned, and threshold-adjusted
@@ -870,12 +874,12 @@ Objective: Maximize accuracy while maintaining recall >= 0.8
 Step 14: Performance comparison
 ============================================================
           Dataset            Model  Threshold  Accuracy  Recall  Precision  Specificity  ROC-AUC  PR-AUC     F2   Brier  Flagged%
-0      Anonymized  Baseline LogReg       0.15     0.569   0.821      0.298        0.505    0.712   0.339  0.608  0.1487      56.1
-1      Anonymized    Random Forest       0.19     0.588   0.796      0.305        0.535    0.719   0.353  0.602  0.1469      53.3
-2      Anonymized          XGBoost       0.18     0.578   0.803      0.300        0.521    0.716   0.351  0.601  0.1480      54.5
-3  Non-Anonymized  Baseline LogReg       0.16     0.579   0.803      0.301        0.522    0.714   0.344  0.602  0.1483      54.4
-4  Non-Anonymized    Random Forest       0.21     0.599   0.791      0.311        0.550    0.730   0.370  0.604  0.1451      51.9
-5  Non-Anonymized          XGBoost       0.19     0.598   0.794      0.310        0.547    0.729   0.369  0.605  0.1456      52.2
+0      Anonymized  Baseline LogReg       0.16     0.580   0.797      0.300        0.524    0.712   0.337  0.599  0.1487      54.1
+1      Anonymized    Random Forest       0.19     0.587   0.792      0.303        0.534    0.718   0.351  0.599  0.1471      53.2
+2      Anonymized          XGBoost       0.18     0.576   0.802      0.299        0.519    0.714   0.348  0.600  0.1481      54.7
+3  Non-Anonymized  Baseline LogReg       0.16     0.580   0.802      0.301        0.523    0.714   0.344  0.602  0.1482      54.3
+4  Non-Anonymized    Random Forest       0.21     0.599   0.791      0.310        0.550    0.730   0.369  0.604  0.1451      52.0
+5  Non-Anonymized          XGBoost       0.19     0.598   0.790      0.309        0.549    0.729   0.368  0.603  0.1457      52.0
 
 ============================================================
 OPERATIONAL WORKLOAD ANALYSIS (Intervention Costs)
@@ -885,37 +889,37 @@ If model flags patients for intervention (SMS, call, etc.):
 
 Anonymized:
   Baseline LogReg:
-    Threshold: 0.15 | Flagged: 56.1% of appointments
-    Precision: 29.8% of flagged actually no-show (true positives)
-    Recall: 82.1% of no-shows caught
-    Wasted interventions: 39.4% of all appointments (false positives)
-  Random Forest:
-    Threshold: 0.19 | Flagged: 53.3% of appointments
-    Precision: 30.5% of flagged actually no-show (true positives)
-    Recall: 79.6% of no-shows caught
-    Wasted interventions: 37.0% of all appointments (false positives)
-  XGBoost:
-    Threshold: 0.18 | Flagged: 54.5% of appointments
+    Threshold: 0.16 | Flagged: 54.1% of appointments
     Precision: 30.0% of flagged actually no-show (true positives)
-    Recall: 80.3% of no-shows caught
-    Wasted interventions: 38.1% of all appointments (false positives)
+    Recall: 79.7% of no-shows caught
+    Wasted interventions: 37.9% of all appointments (false positives)
+  Random Forest:
+    Threshold: 0.19 | Flagged: 53.2% of appointments
+    Precision: 30.3% of flagged actually no-show (true positives)
+    Recall: 79.2% of no-shows caught
+    Wasted interventions: 37.1% of all appointments (false positives)
+  XGBoost:
+    Threshold: 0.18 | Flagged: 54.7% of appointments
+    Precision: 29.9% of flagged actually no-show (true positives)
+    Recall: 80.2% of no-shows caught
+    Wasted interventions: 38.3% of all appointments (false positives)
 
 Non-Anonymized:
   Baseline LogReg:
-    Threshold: 0.16 | Flagged: 54.4% of appointments
+    Threshold: 0.16 | Flagged: 54.3% of appointments
     Precision: 30.1% of flagged actually no-show (true positives)
-    Recall: 80.3% of no-shows caught
-    Wasted interventions: 38.1% of all appointments (false positives)
+    Recall: 80.2% of no-shows caught
+    Wasted interventions: 38.0% of all appointments (false positives)
   Random Forest:
-    Threshold: 0.21 | Flagged: 51.9% of appointments
-    Precision: 31.1% of flagged actually no-show (true positives)
-    Recall: 79.1% of no-shows caught
-    Wasted interventions: 35.8% of all appointments (false positives)
-  XGBoost:
-    Threshold: 0.19 | Flagged: 52.2% of appointments
+    Threshold: 0.21 | Flagged: 52.0% of appointments
     Precision: 31.0% of flagged actually no-show (true positives)
-    Recall: 79.4% of no-shows caught
-    Wasted interventions: 36.0% of all appointments (false positives)
+    Recall: 79.1% of no-shows caught
+    Wasted interventions: 35.9% of all appointments (false positives)
+  XGBoost:
+    Threshold: 0.19 | Flagged: 52.0% of appointments
+    Precision: 30.9% of flagged actually no-show (true positives)
+    Recall: 79.0% of no-shows caught
+    Wasted interventions: 35.9% of all appointments (false positives)
   Saved: output_png/13_model_comparison.png
 
 Step 14a: Calibration Analysis (Reliability Diagrams)
@@ -948,32 +952,32 @@ TOP 5 FEATURES BY IMPORTANCE
 ============================================================
 
 Random Forest (Anonymized):
-   1. DaysBetween: 0.2333
-   2. LogDaysBetween: 0.2187
-   3. Age_Group: 0.0889
-   4. HealthBurden: 0.0398
-   5. Gender: 0.0335
+   1. DaysBetween: 0.2282
+   2. LogDaysBetween: 0.2249
+   3. Age_Group: 0.0885
+   4. HealthBurden: 0.0402
+   5. Gender: 0.0333
 
 XGBoost (Anonymized):
-   1. DaysBetween: 0.0877
-   2. Age_Group: 0.0357
-   3. Region_Jardim da Penha: 0.0343
-   4. ApptDOW_0: 0.0335
-   5. Region_Santo Antônio: 0.0319
+   1. DaysBetween: 0.0920
+   2. Age_Group: 0.0367
+   3. Region_Jardim da Penha: 0.0341
+   4. ApptDOW_0: 0.0339
+   5. Region_São Pedro: 0.0321
 
 Random Forest (Non-Anonymized):
-   1. LogDaysBetween: 0.2929
-   2. DaysBetween: 0.2796
-   3. Age: 0.1069
-   4. SMS_received: 0.0373
-   5. Gender: 0.0170
+   1. DaysBetween: 0.2889
+   2. LogDaysBetween: 0.2880
+   3. Age: 0.1077
+   4. SMS_received: 0.0353
+   5. Gender: 0.0169
 
 XGBoost (Non-Anonymized):
-   1. DaysBetween: 0.0315
-   2. Nbhd_SÃO JOSÉ: 0.0166
-   3. Nbhd_DO QUADRO: 0.0163
-   4. Nbhd_GRANDE VITÓRIA: 0.0156
-   5. Nbhd_GOIABEIRAS: 0.0153
+   1. DaysBetween: 0.0306
+   2. Nbhd_SANTA TEREZA: 0.0164
+   3. Nbhd_SÃO JOSÉ: 0.0163
+   4. Nbhd_GRANDE VITÓRIA: 0.0161
+   5. Nbhd_SANTO ANDRÉ: 0.0156
 
 Step 14f: Privacy vs Utility Analysis
 ============================================================
@@ -983,31 +987,31 @@ MODEL PERFORMANCE COMPARISON
 
 Detailed Metrics by Model and Dataset:
              Model         Dataset  Accuracy  Recall  ROC-AUC  PR-AUC      F2
-0  Baseline LogReg      Anonymized    0.5693  0.8208   0.7118  0.3385  0.6075
-1  Baseline LogReg  Non-Anonymized    0.5791  0.8027   0.7143  0.3439  0.6017
-2    Random Forest      Anonymized    0.5880  0.7958   0.7195  0.3527  0.6017
-3    Random Forest  Non-Anonymized    0.5995  0.7910   0.7301  0.3699  0.6041
-4          XGBoost      Anonymized    0.5784  0.8027   0.7157  0.3506  0.6013
-5          XGBoost  Non-Anonymized    0.5977  0.7938   0.7289  0.3691  0.6049
+0  Baseline LogReg      Anonymized    0.5798  0.7972   0.7116  0.3368  0.5988
+1  Baseline LogReg  Non-Anonymized    0.5799  0.8019   0.7145  0.3441  0.6016
+2    Random Forest      Anonymized    0.5867  0.7923   0.7177  0.3506  0.5991
+3    Random Forest  Non-Anonymized    0.5988  0.7907   0.7299  0.3693  0.6036
+4          XGBoost      Anonymized    0.5765  0.8019   0.7138  0.3481  0.6000
+5          XGBoost  Non-Anonymized    0.5981  0.7895   0.7286  0.3680  0.6026
 
 ============================================================
 UTILITY LOSS DUE TO PRIVACY PROTECTION
 ============================================================
 
 Baseline LogReg:
-  Accuracy loss: +0.99%
-  Recall loss: -1.81%
-  ROC-AUC loss: +0.25%
+  Accuracy loss: +0.02%
+  Recall loss: +0.47%
+  ROC-AUC loss: +0.29%
 
 Random Forest:
-  Accuracy loss: +1.14%
-  Recall loss: -0.47%
-  ROC-AUC loss: +1.06%
+  Accuracy loss: +1.20%
+  Recall loss: -0.16%
+  ROC-AUC loss: +1.22%
 
 XGBoost:
-  Accuracy loss: +1.93%
-  Recall loss: -0.88%
-  ROC-AUC loss: +1.32%
+  Accuracy loss: +2.17%
+  Recall loss: -1.24%
+  ROC-AUC loss: +1.48%
   Saved: output_png/14b_privacy_utility_tradeoff.png
 
 ============================================================
@@ -1021,39 +1025,39 @@ Why do patients miss their scheduled medical appointments?
 
 FEATURE IMPORTANCE RANKING (Model-based)
 --------------------------------------------------
- 1. DaysBetween               0.0877
- 2. Age_Group                 0.0357
- 3. Region_Jardim da Penha    0.0343
- 4. ApptDOW_0                 0.0335
- 5. Region_Santo Antônio      0.0319
- 6. Region_São Pedro          0.0317
- 7. Region_Goiabeiras         0.0306
- 8. LogDaysBetween            0.0301
- 9. Region_Jucutuquara        0.0301
-10. Region_Praia do Canto     0.0301
-11. SMS_received              0.0299
-12. Region_Jardim Camburi     0.0295
-13. SchedDOW_2                0.0295
-14. Region_Centro             0.0293
-15. ApptDOW_2                 0.0292
-16. ApptDOW_3                 0.0292
-17. Gender                    0.0291
-18. SchedDOW_0                0.0291
-19. ApptDOW_1                 0.0289
-20. ApptDOW_4                 0.0285
-21. AppointmentMonth          0.0281
-22. SchedDOW_1                0.0280
-23. SchedDOW_4                0.0279
-24. SchedDOW_3                0.0274
-25. Handcap                   0.0273
-26. Region_Maruípe            0.0273
-27. Alcoholism                0.0267
-28. Hipertension              0.0261
-29. Scholarship               0.0260
-30. HealthBurden              0.0257
-31. Diabetes                  0.0257
-32. SchedDOW_5                0.0207
-33. ApptDOW_5                 0.0153
+ 1. DaysBetween               0.0920
+ 2. Age_Group                 0.0367
+ 3. Region_Jardim da Penha    0.0341
+ 4. ApptDOW_0                 0.0339
+ 5. Region_São Pedro          0.0321
+ 6. Region_Santo Antônio      0.0318
+ 7. LogDaysBetween            0.0304
+ 8. SMS_received              0.0302
+ 9. ApptDOW_1                 0.0301
+10. Region_Praia do Canto     0.0297
+11. ApptDOW_3                 0.0296
+12. ApptDOW_4                 0.0296
+13. Region_Goiabeiras         0.0294
+14. Region_Centro             0.0292
+15. Region_Maruípe            0.0291
+16. Gender                    0.0290
+17. Region_Jucutuquara        0.0289
+18. Region_Jardim Camburi     0.0285
+19. AppointmentMonth          0.0284
+20. SchedDOW_2                0.0282
+21. SchedDOW_0                0.0280
+22. SchedDOW_4                0.0280
+23. SchedDOW_1                0.0278
+24. ApptDOW_2                 0.0277
+25. SchedDOW_3                0.0273
+26. Handcap                   0.0271
+27. Scholarship               0.0269
+28. Diabetes                  0.0259
+29. Hipertension              0.0257
+30. Alcoholism                0.0254
+31. HealthBurden              0.0252
+32. SchedDOW_5                0.0197
+33. ApptDOW_5                 0.0146
 
 ======================================================================
 DETAILED INTERPRETATION: WHY PATIENTS MISS APPOINTMENTS
@@ -1086,9 +1090,9 @@ PRIVACY GUARANTEES ACHIEVED:
 
 MODEL PERFORMANCE (Privacy-Protected):
    • Best Model: XGBoost
-   • Accuracy: 57.8%
-   • Recall (No-show detection): 80.3%
-   • ROC-AUC: 0.716
+   • Accuracy: 57.6%
+   • Recall (No-show detection): 80.2%
+   • ROC-AUC: 0.714
    • Threshold: 0.18 (optimized for accuracy s.t. recall >= 0.8)
 
 KEY FINDINGS:
@@ -1109,11 +1113,12 @@ ACTIONABLE RECOMMENDATIONS:
 ANALYSIS COMPLETE - ALL PLOTS SAVED
 ======================================================================
 
-Total plots saved: 17
+Total plots saved: 19
 Output directory: output_png/
 
 Saved plots:
   - output_png/01_quick_look_eda.png
+  - output_png/01b_age_distribution_raw.png
   - output_png/02_noshow_distribution.png
   - output_png/03_correlation_analysis.png
   - output_png/04_crosstab_analysis.png
@@ -1123,6 +1128,7 @@ Saved plots:
   - output_png/08_age_distribution.png
   - output_png/09_ldiversity_comprehensive.png
   - output_png/09b_ldiversity_before_after_comparison.png
+  - output_png/09c_tcloseness_analysis.png
   - output_png/10b_dp_privacy_utility_tradeoff.png
   - output_png/11_differential_privacy_comparison.png
   - output_png/13_model_comparison.png
