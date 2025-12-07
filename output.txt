@@ -1,4 +1,5 @@
-Plot output directory: output_png/
+All output saved to output.txt
+ng/
 Dataset shape: (110527, 14)
 
 First few rows:
@@ -276,6 +277,25 @@ Geographic regions preserve meaningful patterns:
   - No-show rates vary from 0.167 to 0.216
   - Average age varies from 34.5 to 43.7 years
   - Scholarship rates vary from 0.010 to 0.147
+
+Step 4c: Region x Scholarship x Age Cross-Analysis
+============================================================
+  Saved: output_png/06b_region_scholarship_age_cross.png
+
+Key Insights from Cross-Analysis:
+--------------------------------------------------
+• Correlation (Scholarship Rate vs Avg Age): -0.925
+• Median scholarship rate across regions: 8.4%
+• Highest scholarship region: São Pedro (14.7%)
+• Oldest avg age region: Jardim Camburi (43.7 years)
+• Youngest avg age region: São Pedro (34.5 years)
+
+Scholarship rate by age group:
+  0-14: 10.4%
+  15-24: 12.3%
+  25-44: 15.0%
+  45-64: 7.1%
+  65+: 2.0%
 
 Neighbourhood Distribution by Region:
 ============================================================
@@ -606,11 +626,11 @@ Interpretation:
   - With p=0.3, true value is kept 70% of the time
 
 After DP - Noisy distributions:
-  Hipertension_DP: 0.2893 (original: 0.1976, diff: 0.0916)
-  Diabetes_DP: 0.2023 (original: 0.0722, diff: 0.1300)
-  Alcoholism_DP: 0.1718 (original: 0.0309, diff: 0.1409)
-  Handcap_binary_DP: 0.1631 (original: 0.0203, diff: 0.1428)
-  Scholarship_DP: 0.2176 (original: 0.0984, diff: 0.1192)
+  Hipertension_DP: 0.2897 (original: 0.1976, diff: 0.0921)
+  Diabetes_DP: 0.1992 (original: 0.0722, diff: 0.1270)
+  Alcoholism_DP: 0.1725 (original: 0.0309, diff: 0.1415)
+  Handcap_binary_DP: 0.1647 (original: 0.0203, diff: 0.1444)
+  Scholarship_DP: 0.2188 (original: 0.0984, diff: 0.1204)
   Saved: output_png/11_differential_privacy_comparison.png
 
 Differential privacy applied to 5 sensitive attributes
@@ -624,26 +644,42 @@ PRIVACY-UTILITY TRADEOFF: Parameter Sweep Analysis
 
 Sweep 1: Differential Privacy (ε) vs Model Performance
 --------------------------------------------------
-  ε=2.94 (p=0.1): Acc=0.575, Recall=0.836, F1=0.443
-  ε=2.20 (p=0.2): Acc=0.569, Recall=0.842, F1=0.441
-  ε=1.73 (p=0.3): Acc=0.570, Recall=0.841, F1=0.441
-  ε=1.39 (p=0.4): Acc=0.571, Recall=0.838, F1=0.441
-  ε=1.10 (p=0.5): Acc=0.571, Recall=0.838, F1=0.441
-  ε=0.85 (p=0.6): Acc=0.570, Recall=0.840, F1=0.441
-  ε=0.62 (p=0.7): Acc=0.570, Recall=0.839, F1=0.440
-  ε=0.41 (p=0.8): Acc=0.572, Recall=0.840, F1=0.442
+  ε=3.66 (p=0.05): Acc=0.578, Recall=0.831, F1=0.443
+  ε=2.94 (p=0.1): Acc=0.578, Recall=0.833, F1=0.443
+  ε=2.51 (p=0.15): Acc=0.577, Recall=0.833, F1=0.443
+  ε=2.20 (p=0.2): Acc=0.577, Recall=0.832, F1=0.443
+  ε=1.95 (p=0.25): Acc=0.575, Recall=0.836, F1=0.442
+  ε=1.73 (p=0.3): Acc=0.578, Recall=0.833, F1=0.443
+  ε=1.55 (p=0.35): Acc=0.577, Recall=0.833, F1=0.443
+  ε=1.39 (p=0.4): Acc=0.576, Recall=0.833, F1=0.442
+  ε=1.24 (p=0.45): Acc=0.576, Recall=0.833, F1=0.442
+  ε=1.10 (p=0.5): Acc=0.577, Recall=0.832, F1=0.443
+  ε=0.97 (p=0.55): Acc=0.576, Recall=0.833, F1=0.442
+  ε=0.85 (p=0.6): Acc=0.576, Recall=0.834, F1=0.442
+  ε=0.73 (p=0.65): Acc=0.577, Recall=0.834, F1=0.443
+  ε=0.62 (p=0.7): Acc=0.577, Recall=0.831, F1=0.442
+  ε=0.51 (p=0.75): Acc=0.579, Recall=0.829, F1=0.443
+  ε=0.41 (p=0.8): Acc=0.577, Recall=0.832, F1=0.442
   Saved: output_png/10b_dp_privacy_utility_tradeoff.png
 
 Summary Table: DP Parameter Sweep
-   epsilon    p  accuracy  recall     f1
-0    2.944  0.1     0.575   0.836  0.443
-1    2.197  0.2     0.569   0.842  0.441
-2    1.735  0.3     0.570   0.841  0.441
-3    1.386  0.4     0.571   0.838  0.441
-4    1.099  0.5     0.571   0.838  0.441
-5    0.847  0.6     0.570   0.840  0.441
-6    0.619  0.7     0.570   0.839  0.440
-7    0.405  0.8     0.572   0.840  0.442
+    epsilon     p  accuracy  recall     f1
+0     3.664  0.05     0.578   0.831  0.443
+1     2.944  0.10     0.578   0.833  0.443
+2     2.512  0.15     0.577   0.833  0.443
+3     2.197  0.20     0.577   0.832  0.443
+4     1.946  0.25     0.575   0.836  0.442
+5     1.735  0.30     0.578   0.833  0.443
+6     1.551  0.35     0.577   0.833  0.443
+7     1.386  0.40     0.576   0.833  0.442
+8     1.237  0.45     0.576   0.833  0.442
+9     1.099  0.50     0.577   0.832  0.443
+10    0.969  0.55     0.576   0.833  0.442
+11    0.847  0.60     0.576   0.834  0.442
+12    0.731  0.65     0.577   0.834  0.443
+13    0.619  0.70     0.577   0.831  0.442
+14    0.511  0.75     0.579   0.829  0.443
+15    0.405  0.80     0.577   0.832  0.442
 
 KEY INSIGHTS:
 --------------------------------------------------
@@ -672,28 +708,28 @@ First few rows:
 9     15-24      F        São Pedro            2                     4   
 
    AppointmentMonth  ScheduledDayOfWeek  SMS_received  Hipertension  Diabetes  \
-0                 4                   4             0             0         0   
+0                 4                   4             0             1         1   
 1                 4                   4             0             0         0   
-2                 4                   4             0             0         0   
+2                 4                   4             0             1         0   
 3                 4                   4             0             0         0   
 4                 4                   4             0             1         1   
-5                 4                   2             0             1         1   
-6                 4                   2             0             0         0   
+5                 4                   2             0             0         0   
+6                 4                   2             0             1         0   
 7                 4                   2             0             0         0   
 8                 4                   4             0             0         0   
 9                 4                   2             0             0         0   
 
    Alcoholism  Handcap  Scholarship  NoShow  
-0           0        0            1       0  
-1           0        0            0       0  
+0           0        1            0       0  
+1           1        0            0       0  
 2           0        0            0       0  
 3           0        0            0       0  
-4           1        1            0       0  
-5           0        0            0       0  
-6           0        1            0       1  
-7           0        1            0       1  
-8           0        1            0       0  
-9           0        0            0       0  
+4           0        0            0       0  
+5           1        1            0       0  
+6           0        0            0       1  
+7           1        1            0       1  
+8           1        1            1       0  
+9           1        0            0       0  
 
 ============================================================
 Final Anonymized Dataset Summary:
@@ -716,8 +752,8 @@ count      110521.000000       110521.000000  110521.000000  110521.000000
 unique               NaN                 NaN            NaN            NaN   
 top                  NaN                 NaN            NaN            NaN   
 freq                 NaN                 NaN            NaN            NaN   
-mean            5.210051            1.851965       0.321043       0.289257   
-std             0.473785            1.378539       0.466879       0.453420   
+mean            5.210051            1.851965       0.321043       0.289737   
+std             0.473785            1.378539       0.466879       0.453642   
 min             4.000000            0.000000       0.000000       0.000000   
 25%             5.000000            1.000000       0.000000       0.000000   
 50%             5.000000            2.000000       0.000000       0.000000   
@@ -729,8 +765,8 @@ count   110521.000000  110521.000000  110521.000000  110521.000000
 unique            NaN            NaN            NaN            NaN   
 top               NaN            NaN            NaN            NaN   
 freq              NaN            NaN            NaN            NaN   
-mean         0.202278       0.171814       0.163073       0.217606   
-std          0.401700       0.377220       0.369434       0.412620   
+mean         0.199202       0.172456       0.164656       0.218818   
+std          0.399402       0.377778       0.370872       0.413447   
 min          0.000000       0.000000       0.000000       0.000000   
 25%          0.000000       0.000000       0.000000       0.000000   
 50%          0.000000       0.000000       0.000000       0.000000   
@@ -761,7 +797,7 @@ Updated dataset shape: (110521, 16)
 
 New feature distributions:
   LogDaysBetween: min=0.00, max=5.19, mean=1.54
-  HealthBurden: {0: 45575, 1: 42784, 2: 18218, 3: 3659, 4: 285}
+  HealthBurden: {0: 45617, 1: 42824, 2: 18064, 3: 3720, 4: 296}
 
 Step 12: Preparing Data for Machine Learning
 ============================================================
@@ -810,30 +846,30 @@ Using group-based split by PatientId to prevent data leakage
 
 Baseline LogReg: CV calibration + threshold tuning (acc s.t. recall>=0.8)
   Best threshold: 0.16 | CV Accuracy: 0.587
-    Accuracy: 0.580 | Recall: 0.797 | Precision: 0.300
-    Specificity: 0.524 | ROC-AUC: 0.712 | Brier: 0.1487
-    F2: 0.599 | Flagged for intervention: 18,026 (54.1%)
+    Accuracy: 0.580 | Recall: 0.795 | Precision: 0.300
+    Specificity: 0.525 | ROC-AUC: 0.711 | Brier: 0.1487
+    F2: 0.598 | Flagged for intervention: 17,985 (54.0%)
     Confusion matrix:
-[[13895 12617]
- [ 1376  5409]]
+[[13923 12589]
+ [ 1389  5396]]
 
 Random Forest: CV calibration + threshold tuning (acc s.t. recall>=0.8)
   Best threshold: 0.19 | CV Accuracy: 0.593
-    Accuracy: 0.587 | Recall: 0.792 | Precision: 0.303
+    Accuracy: 0.588 | Recall: 0.800 | Precision: 0.305
     Specificity: 0.534 | ROC-AUC: 0.718 | Brier: 0.1471
-    F2: 0.599 | Flagged for intervention: 17,727 (53.2%)
+    F2: 0.604 | Flagged for intervention: 17,779 (53.4%)
     Confusion matrix:
-[[14161 12351]
- [ 1409  5376]]
+[[14158 12354]
+ [ 1360  5425]]
 
 XGBoost: CV calibration + threshold tuning (acc s.t. recall>=0.8)
-  Best threshold: 0.18 | CV Accuracy: 0.580
-    Accuracy: 0.576 | Recall: 0.802 | Precision: 0.299
-    Specificity: 0.519 | ROC-AUC: 0.714 | Brier: 0.1481
-    F2: 0.600 | Flagged for intervention: 18,199 (54.7%)
+  Best threshold: 0.18 | CV Accuracy: 0.582
+    Accuracy: 0.579 | Recall: 0.805 | Precision: 0.301
+    Specificity: 0.521 | ROC-AUC: 0.714 | Brier: 0.1482
+    F2: 0.603 | Flagged for intervention: 18,152 (54.5%)
     Confusion matrix:
-[[13754 12758]
- [ 1344  5441]]
+[[13825 12687]
+ [ 1320  5465]]
 
 === NON-ANONYMIZED ===
   Group-based split: 77224 train, 33297 test
@@ -841,12 +877,12 @@ XGBoost: CV calibration + threshold tuning (acc s.t. recall>=0.8)
 
 Baseline LogReg: CV calibration + threshold tuning (acc s.t. recall>=0.8)
   Best threshold: 0.16 | CV Accuracy: 0.584
-    Accuracy: 0.580 | Recall: 0.802 | Precision: 0.301
-    Specificity: 0.523 | ROC-AUC: 0.714 | Brier: 0.1482
-    F2: 0.602 | Flagged for intervention: 18,084 (54.3%)
+    Accuracy: 0.580 | Recall: 0.801 | Precision: 0.301
+    Specificity: 0.524 | ROC-AUC: 0.714 | Brier: 0.1483
+    F2: 0.601 | Flagged for intervention: 18,059 (54.2%)
     Confusion matrix:
-[[13869 12643]
- [ 1344  5441]]
+[[13889 12623]
+ [ 1349  5436]]
 
 Random Forest: CV calibration + threshold tuning (acc s.t. recall>=0.8)
   Best threshold: 0.21 | CV Accuracy: 0.607
@@ -874,10 +910,10 @@ Objective: Maximize accuracy while maintaining recall >= 0.8
 Step 14: Performance comparison
 ============================================================
           Dataset            Model  Threshold  Accuracy  Recall  Precision  Specificity  ROC-AUC  PR-AUC     F2   Brier  Flagged%
-0      Anonymized  Baseline LogReg       0.16     0.580   0.797      0.300        0.524    0.712   0.337  0.599  0.1487      54.1
-1      Anonymized    Random Forest       0.19     0.587   0.792      0.303        0.534    0.718   0.351  0.599  0.1471      53.2
-2      Anonymized          XGBoost       0.18     0.576   0.802      0.299        0.519    0.714   0.348  0.600  0.1481      54.7
-3  Non-Anonymized  Baseline LogReg       0.16     0.580   0.802      0.301        0.523    0.714   0.344  0.602  0.1482      54.3
+0      Anonymized  Baseline LogReg       0.16     0.580   0.795      0.300        0.525    0.711   0.338  0.598  0.1487      54.0
+1      Anonymized    Random Forest       0.19     0.588   0.800      0.305        0.534    0.718   0.348  0.604  0.1471      53.4
+2      Anonymized          XGBoost       0.18     0.579   0.805      0.301        0.521    0.714   0.344  0.603  0.1482      54.5
+3  Non-Anonymized  Baseline LogReg       0.16     0.580   0.801      0.301        0.524    0.714   0.344  0.601  0.1483      54.2
 4  Non-Anonymized    Random Forest       0.21     0.599   0.791      0.310        0.550    0.730   0.369  0.604  0.1451      52.0
 5  Non-Anonymized          XGBoost       0.19     0.598   0.790      0.309        0.549    0.729   0.368  0.603  0.1457      52.0
 
@@ -889,27 +925,27 @@ If model flags patients for intervention (SMS, call, etc.):
 
 Anonymized:
   Baseline LogReg:
-    Threshold: 0.16 | Flagged: 54.1% of appointments
+    Threshold: 0.16 | Flagged: 54.0% of appointments
     Precision: 30.0% of flagged actually no-show (true positives)
-    Recall: 79.7% of no-shows caught
-    Wasted interventions: 37.9% of all appointments (false positives)
+    Recall: 79.5% of no-shows caught
+    Wasted interventions: 37.8% of all appointments (false positives)
   Random Forest:
-    Threshold: 0.19 | Flagged: 53.2% of appointments
-    Precision: 30.3% of flagged actually no-show (true positives)
-    Recall: 79.2% of no-shows caught
+    Threshold: 0.19 | Flagged: 53.4% of appointments
+    Precision: 30.5% of flagged actually no-show (true positives)
+    Recall: 80.0% of no-shows caught
     Wasted interventions: 37.1% of all appointments (false positives)
   XGBoost:
-    Threshold: 0.18 | Flagged: 54.7% of appointments
-    Precision: 29.9% of flagged actually no-show (true positives)
-    Recall: 80.2% of no-shows caught
-    Wasted interventions: 38.3% of all appointments (false positives)
+    Threshold: 0.18 | Flagged: 54.5% of appointments
+    Precision: 30.1% of flagged actually no-show (true positives)
+    Recall: 80.5% of no-shows caught
+    Wasted interventions: 38.1% of all appointments (false positives)
 
 Non-Anonymized:
   Baseline LogReg:
-    Threshold: 0.16 | Flagged: 54.3% of appointments
+    Threshold: 0.16 | Flagged: 54.2% of appointments
     Precision: 30.1% of flagged actually no-show (true positives)
-    Recall: 80.2% of no-shows caught
-    Wasted interventions: 38.0% of all appointments (false positives)
+    Recall: 80.1% of no-shows caught
+    Wasted interventions: 37.9% of all appointments (false positives)
   Random Forest:
     Threshold: 0.21 | Flagged: 52.0% of appointments
     Precision: 31.0% of flagged actually no-show (true positives)
@@ -952,18 +988,18 @@ TOP 5 FEATURES BY IMPORTANCE
 ============================================================
 
 Random Forest (Anonymized):
-   1. DaysBetween: 0.2282
-   2. LogDaysBetween: 0.2249
+   1. DaysBetween: 0.2262
+   2. LogDaysBetween: 0.2247
    3. Age_Group: 0.0885
-   4. HealthBurden: 0.0402
-   5. Gender: 0.0333
+   4. HealthBurden: 0.0414
+   5. Gender: 0.0327
 
 XGBoost (Anonymized):
-   1. DaysBetween: 0.0920
+   1. DaysBetween: 0.0900
    2. Age_Group: 0.0367
-   3. Region_Jardim da Penha: 0.0341
+   3. Region_Jardim da Penha: 0.0347
    4. ApptDOW_0: 0.0339
-   5. Region_São Pedro: 0.0321
+   5. Region_Santo Antônio: 0.0322
 
 Random Forest (Non-Anonymized):
    1. DaysBetween: 0.2889
@@ -987,11 +1023,11 @@ MODEL PERFORMANCE COMPARISON
 
 Detailed Metrics by Model and Dataset:
              Model         Dataset  Accuracy  Recall  ROC-AUC  PR-AUC      F2
-0  Baseline LogReg      Anonymized    0.5798  0.7972   0.7116  0.3368  0.5988
-1  Baseline LogReg  Non-Anonymized    0.5799  0.8019   0.7145  0.3441  0.6016
-2    Random Forest      Anonymized    0.5867  0.7923   0.7177  0.3506  0.5991
+0  Baseline LogReg      Anonymized    0.5802  0.7953   0.7113  0.3383  0.5979
+1  Baseline LogReg  Non-Anonymized    0.5804  0.8012   0.7144  0.3439  0.6013
+2    Random Forest      Anonymized    0.5881  0.7996   0.7180  0.3477  0.6039
 3    Random Forest  Non-Anonymized    0.5988  0.7907   0.7299  0.3693  0.6036
-4          XGBoost      Anonymized    0.5765  0.8019   0.7138  0.3481  0.6000
+4          XGBoost      Anonymized    0.5793  0.8055   0.7139  0.3437  0.6033
 5          XGBoost  Non-Anonymized    0.5981  0.7895   0.7286  0.3680  0.6026
 
 ============================================================
@@ -1000,18 +1036,18 @@ UTILITY LOSS DUE TO PRIVACY PROTECTION
 
 Baseline LogReg:
   Accuracy loss: +0.02%
-  Recall loss: +0.47%
-  ROC-AUC loss: +0.29%
+  Recall loss: +0.59%
+  ROC-AUC loss: +0.31%
 
 Random Forest:
-  Accuracy loss: +1.20%
-  Recall loss: -0.16%
-  ROC-AUC loss: +1.22%
+  Accuracy loss: +1.06%
+  Recall loss: -0.88%
+  ROC-AUC loss: +1.19%
 
 XGBoost:
-  Accuracy loss: +2.17%
-  Recall loss: -1.24%
-  ROC-AUC loss: +1.48%
+  Accuracy loss: +1.88%
+  Recall loss: -1.59%
+  ROC-AUC loss: +1.46%
   Saved: output_png/14b_privacy_utility_tradeoff.png
 
 ============================================================
@@ -1025,39 +1061,39 @@ Why do patients miss their scheduled medical appointments?
 
 FEATURE IMPORTANCE RANKING (Model-based)
 --------------------------------------------------
- 1. DaysBetween               0.0920
+ 1. DaysBetween               0.0900
  2. Age_Group                 0.0367
- 3. Region_Jardim da Penha    0.0341
+ 3. Region_Jardim da Penha    0.0347
  4. ApptDOW_0                 0.0339
- 5. Region_São Pedro          0.0321
- 6. Region_Santo Antônio      0.0318
+ 5. Region_Santo Antônio      0.0322
+ 6. Region_São Pedro          0.0308
  7. LogDaysBetween            0.0304
- 8. SMS_received              0.0302
- 9. ApptDOW_1                 0.0301
-10. Region_Praia do Canto     0.0297
-11. ApptDOW_3                 0.0296
-12. ApptDOW_4                 0.0296
-13. Region_Goiabeiras         0.0294
-14. Region_Centro             0.0292
-15. Region_Maruípe            0.0291
-16. Gender                    0.0290
-17. Region_Jucutuquara        0.0289
-18. Region_Jardim Camburi     0.0285
-19. AppointmentMonth          0.0284
-20. SchedDOW_2                0.0282
-21. SchedDOW_0                0.0280
-22. SchedDOW_4                0.0280
-23. SchedDOW_1                0.0278
-24. ApptDOW_2                 0.0277
-25. SchedDOW_3                0.0273
+ 8. ApptDOW_1                 0.0302
+ 9. SMS_received              0.0300
+10. Gender                    0.0295
+11. Region_Goiabeiras         0.0294
+12. SchedDOW_3                0.0293
+13. Region_Centro             0.0291
+14. Region_Jucutuquara        0.0290
+15. SchedDOW_2                0.0288
+16. Region_Praia do Canto     0.0288
+17. Region_Jardim Camburi     0.0288
+18. ApptDOW_4                 0.0287
+19. ApptDOW_3                 0.0286
+20. AppointmentMonth          0.0281
+21. SchedDOW_0                0.0279
+22. SchedDOW_4                0.0278
+23. Region_Maruípe            0.0275
+24. SchedDOW_1                0.0274
+25. ApptDOW_2                 0.0274
 26. Handcap                   0.0271
-27. Scholarship               0.0269
-28. Diabetes                  0.0259
-29. Hipertension              0.0257
-30. Alcoholism                0.0254
-31. HealthBurden              0.0252
-32. SchedDOW_5                0.0197
-33. ApptDOW_5                 0.0146
+27. SchedDOW_5                0.0262
+28. Scholarship               0.0259
+29. Diabetes                  0.0257
+30. Alcoholism                0.0257
+31. HealthBurden              0.0253
+32. Hipertension              0.0251
+33. ApptDOW_5                 0.0140
 
 ======================================================================
 DETAILED INTERPRETATION: WHY PATIENTS MISS APPOINTMENTS
@@ -1090,8 +1126,8 @@ PRIVACY GUARANTEES ACHIEVED:
 
 MODEL PERFORMANCE (Privacy-Protected):
    • Best Model: XGBoost
-   • Accuracy: 57.6%
-   • Recall (No-show detection): 80.2%
+   • Accuracy: 57.9%
+   • Recall (No-show detection): 80.5%
    • ROC-AUC: 0.714
    • Threshold: 0.18 (optimized for accuracy s.t. recall >= 0.8)
 
@@ -1113,7 +1149,7 @@ ACTIONABLE RECOMMENDATIONS:
 ANALYSIS COMPLETE - ALL PLOTS SAVED
 ======================================================================
 
-Total plots saved: 19
+Total plots saved: 20
 Output directory: output_png/
 
 Saved plots:
@@ -1124,6 +1160,7 @@ Saved plots:
   - output_png/04_crosstab_analysis.png
   - output_png/05_region_distribution.png
   - output_png/06_region_characteristics.png
+  - output_png/06b_region_scholarship_age_cross.png
   - output_png/07_age_generalization.png
   - output_png/08_age_distribution.png
   - output_png/09_ldiversity_comprehensive.png

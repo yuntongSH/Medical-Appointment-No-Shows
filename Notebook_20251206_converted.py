@@ -932,6 +932,130 @@ print(f"  - Average age varies from {region_summary['Avg_Age'].min():.1f} to {re
 print(f"  - Scholarship rates vary from {region_summary['Scholarship_Rate'].min():.3f} to {region_summary['Scholarship_Rate'].max():.3f}")
 
 
+# In[16b]:
+
+
+# Step 4c: Region x Scholarship x Age Cross-Analysis
+print("\nStep 4c: Region x Scholarship x Age Cross-Analysis")
+print("="*60)
+
+# Create age bins for this analysis (same as will be used later)
+age_bins_temp = [0, 15, 25, 45, 65, 120]
+age_labels_temp = ['0-14', '15-24', '25-44', '45-64', '65+']
+df_protected['Age_Group_temp'] = pd.cut(df_protected['Age'], bins=age_bins_temp, labels=age_labels_temp, right=False)
+
+# Create visualization
+fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+
+# Plot 1: Scatter - Scholarship Rate vs Average Age by Region (bubble = count)
+ax1 = axes[0, 0]
+sizes = region_summary['Count'] / region_summary['Count'].max() * 1000  # Scale for visibility
+scatter = ax1.scatter(region_summary['Scholarship_Rate'], region_summary['Avg_Age'], 
+                      s=sizes, alpha=0.6, c=region_summary['NoShow_Rate'], cmap='RdYlGn_r', 
+                      edgecolors='black', linewidth=1)
+for i, region in enumerate(region_summary.index):
+    ax1.annotate(region, (region_summary.loc[region, 'Scholarship_Rate'], 
+                          region_summary.loc[region, 'Avg_Age']),
+                 fontsize=8, ha='center', va='bottom')
+ax1.set_xlabel('Scholarship Rate (Bolsa Família)', fontsize=11)
+ax1.set_ylabel('Average Age (years)', fontsize=11)
+ax1.set_title('Region Profile: Scholarship Rate vs Age\n(bubble size = appointments, color = no-show rate)', fontsize=12, fontweight='bold')
+ax1.grid(alpha=0.3)
+cbar = plt.colorbar(scatter, ax=ax1, shrink=0.8)
+cbar.set_label('No-Show Rate')
+
+# Plot 2: Heatmap - Scholarship Rate by Region and Age Group
+scholarship_by_region_age = df_protected.groupby(['Region', 'Age_Group_temp'])['Scholarship'].mean().unstack()
+# Reorder regions by total scholarship rate
+scholarship_by_region_age = scholarship_by_region_age.loc[region_summary.index]
+ax2 = axes[0, 1]
+im = ax2.imshow(scholarship_by_region_age.values, cmap='Purples', aspect='auto')
+ax2.set_xticks(range(len(age_labels_temp)))
+ax2.set_xticklabels(age_labels_temp)
+ax2.set_yticks(range(len(scholarship_by_region_age.index)))
+ax2.set_yticklabels(scholarship_by_region_age.index)
+ax2.set_xlabel('Age Group', fontsize=11)
+ax2.set_ylabel('Region', fontsize=11)
+ax2.set_title('Scholarship Rate by Region and Age Group', fontsize=12, fontweight='bold')
+# Add text annotations
+for i in range(len(scholarship_by_region_age.index)):
+    for j in range(len(age_labels_temp)):
+        val = scholarship_by_region_age.iloc[i, j]
+        text_color = 'white' if val > 0.15 else 'black'
+        ax2.text(j, i, f'{val:.2f}', ha='center', va='center', fontsize=8, color=text_color)
+cbar2 = plt.colorbar(im, ax=ax2, shrink=0.8)
+cbar2.set_label('Scholarship Rate')
+
+# Plot 3: Stacked bar - Age distribution within high/low scholarship regions
+# Split regions into high/low scholarship
+median_scholarship = region_summary['Scholarship_Rate'].median()
+high_scholar_regions = region_summary[region_summary['Scholarship_Rate'] >= median_scholarship].index.tolist()
+low_scholar_regions = region_summary[region_summary['Scholarship_Rate'] < median_scholarship].index.tolist()
+
+age_dist_high = df_protected[df_protected['Region'].isin(high_scholar_regions)]['Age_Group_temp'].value_counts(normalize=True).sort_index()
+age_dist_low = df_protected[df_protected['Region'].isin(low_scholar_regions)]['Age_Group_temp'].value_counts(normalize=True).sort_index()
+
+ax3 = axes[1, 0]
+x = np.arange(len(age_labels_temp))
+width = 0.35
+bars1 = ax3.bar(x - width/2, age_dist_high.values, width, label=f'High Scholarship Regions (≥{median_scholarship:.1%})', color='purple', alpha=0.7)
+bars2 = ax3.bar(x + width/2, age_dist_low.values, width, label=f'Low Scholarship Regions (<{median_scholarship:.1%})', color='gray', alpha=0.7)
+ax3.set_xticks(x)
+ax3.set_xticklabels(age_labels_temp)
+ax3.set_xlabel('Age Group', fontsize=11)
+ax3.set_ylabel('Proportion of Appointments', fontsize=11)
+ax3.set_title('Age Distribution: High vs Low Scholarship Regions', fontsize=12, fontweight='bold')
+ax3.legend(loc='upper right', fontsize=9)
+ax3.grid(alpha=0.3, axis='y')
+
+# Plot 4: Bar chart - Top regions by scholarship with age annotation
+ax4 = axes[1, 1]
+top_regions = region_summary.nlargest(9, 'Scholarship_Rate')
+colors = plt.cm.RdYlBu_r((top_regions['Avg_Age'] - top_regions['Avg_Age'].min()) / 
+                          (top_regions['Avg_Age'].max() - top_regions['Avg_Age'].min()))
+bars = ax4.barh(top_regions.index, top_regions['Scholarship_Rate'], color=colors, alpha=0.8, edgecolor='black')
+# Add age labels
+for i, (region, row) in enumerate(top_regions.iterrows()):
+    ax4.text(row['Scholarship_Rate'] + 0.005, i, f'Age: {row["Avg_Age"]:.0f}', 
+             va='center', fontsize=9, fontweight='bold')
+ax4.set_xlabel('Scholarship Rate', fontsize=11)
+ax4.set_ylabel('Region', fontsize=11)
+ax4.set_title('Top Regions by Scholarship Rate\n(color = average age: blue=younger, red=older)', fontsize=12, fontweight='bold')
+ax4.grid(alpha=0.3, axis='x')
+
+# Add colorbar for age
+sm = plt.cm.ScalarMappable(cmap='RdYlBu_r', norm=plt.Normalize(vmin=top_regions['Avg_Age'].min(), vmax=top_regions['Avg_Age'].max()))
+sm.set_array([])
+cbar4 = plt.colorbar(sm, ax=ax4, shrink=0.8)
+cbar4.set_label('Average Age')
+
+plt.suptitle('Cross-Analysis: Region × Scholarship × Age', fontsize=14, fontweight='bold', y=1.02)
+plt.tight_layout()
+plt.savefig(f'{output_dir}/06b_region_scholarship_age_cross.png', dpi=300, bbox_inches='tight')
+plt.close()
+print(f"  Saved: {output_dir}/06b_region_scholarship_age_cross.png")
+
+# Clean up temporary column
+df_protected.drop(columns=['Age_Group_temp'], inplace=True)
+
+# Print key insights
+print("\nKey Insights from Cross-Analysis:")
+print("-" * 50)
+# Correlation between scholarship rate and average age
+corr_scholar_age = region_summary['Scholarship_Rate'].corr(region_summary['Avg_Age'])
+print(f"• Correlation (Scholarship Rate vs Avg Age): {corr_scholar_age:.3f}")
+print(f"• Median scholarship rate across regions: {median_scholarship:.1%}")
+print(f"• Highest scholarship region: {region_summary['Scholarship_Rate'].idxmax()} ({region_summary['Scholarship_Rate'].max():.1%})")
+print(f"• Oldest avg age region: {region_summary['Avg_Age'].idxmax()} ({region_summary['Avg_Age'].max():.1f} years)")
+print(f"• Youngest avg age region: {region_summary['Avg_Age'].idxmin()} ({region_summary['Avg_Age'].min():.1f} years)")
+
+# Which age group has highest scholarship rate overall?
+scholarship_by_age = df_protected.groupby(pd.cut(df_protected['Age'], bins=age_bins_temp, labels=age_labels_temp, right=False))['Scholarship'].mean()
+print(f"\nScholarship rate by age group:")
+for age_grp in age_labels_temp:
+    print(f"  {age_grp}: {scholarship_by_age[age_grp]:.1%}")
+
+
 # In[17]:
 
 
@@ -1936,35 +2060,46 @@ print("\nSweep 1: Differential Privacy (ε) vs Model Performance")
 print("-" * 50)
 
 # Different (p, q) combinations to vary epsilon
+# More granular sweep for smoother curves
 dp_params = [
-    (0.1, 0.5),   # ε ≈ 3.0 (low privacy)
-    (0.2, 0.5),   # ε ≈ 2.3
-    (0.3, 0.5),   # ε ≈ 2.4 (our current setting)
-    (0.4, 0.5),   # ε ≈ 1.6
-    (0.5, 0.5),   # ε ≈ 1.4
-    (0.6, 0.5),   # ε ≈ 1.2
-    (0.7, 0.5),   # ε ≈ 1.0
-    (0.8, 0.5),   # ε ≈ 0.9 (high privacy)
+    (0.05, 0.5),  # ε ≈ 3.4 (very low privacy)
+    (0.10, 0.5),  # ε ≈ 2.9
+    (0.15, 0.5),  # ε ≈ 2.5
+    (0.20, 0.5),  # ε ≈ 2.2
+    (0.25, 0.5),  # ε ≈ 1.9
+    (0.30, 0.5),  # ε ≈ 1.7 (our current setting)
+    (0.35, 0.5),  # ε ≈ 1.5
+    (0.40, 0.5),  # ε ≈ 1.4
+    (0.45, 0.5),  # ε ≈ 1.2
+    (0.50, 0.5),  # ε ≈ 1.1
+    (0.55, 0.5),  # ε ≈ 1.0
+    (0.60, 0.5),  # ε ≈ 0.85
+    (0.65, 0.5),  # ε ≈ 0.73
+    (0.70, 0.5),  # ε ≈ 0.62
+    (0.75, 0.5),  # ε ≈ 0.51
+    (0.80, 0.5),  # ε ≈ 0.41 (high privacy)
 ]
 
 medical_cols_binary = ['Hipertension', 'Diabetes', 'Alcoholism', 'Handcap_binary']
 results_dp = []
 
 # Use the protected dataset with generalized QIs
+N_TRIALS = 10  # More trials for smoother curves
 for p_val, q_val in dp_params:
     eps = epsilon_from_pq(p_val, q_val)
 
-    # Apply DP with these parameters (run 3 times for stability)
+    # Apply DP with these parameters (run multiple times for stability)
     accs, recalls, f1s = [], [], []
-    for seed in range(3):
+    for seed in range(N_TRIALS):
         random.seed(seed)
+        np.random.seed(seed)
         df_temp = apply_dp_with_params(df_anonymous, medical_cols_binary, p_val, q_val)
         X, y = prepare_features(df_temp, medical_cols_binary, use_dp=True)
 
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=seed, stratify=y)
 
         clf = RandomForestClassifier(n_estimators=100, max_depth=10, class_weight='balanced', 
-                                     random_state=42, n_jobs=-1)
+                                     random_state=seed, n_jobs=-1)
         clf.fit(X_train, y_train)
         y_pred = clf.predict(X_test)
 
@@ -2729,38 +2864,45 @@ xgb_orig_importance = pd.DataFrame({
     'Importance': xgb_orig_importance_vals
 }).sort_values('Importance', ascending=True)
 
-# Create visualization
-fig, axes = plt.subplots(2, 2, figsize=(18, 12))
+# Get top 10 features for each (for cleaner visualization)
+TOP_N = 10
+rf_anon_top = rf_anon_importance.tail(TOP_N)
+xgb_anon_top = xgb_anon_importance.tail(TOP_N)
+rf_orig_top = rf_orig_importance.tail(TOP_N)
+xgb_orig_top = xgb_orig_importance.tail(TOP_N)
 
-# 1. Random Forest - Anonymized
-axes[0, 0].barh(rf_anon_importance['Feature'], rf_anon_importance['Importance'], 
+# Create visualization with top 10 only
+fig, axes = plt.subplots(2, 2, figsize=(16, 10))
+
+# 1. Random Forest - Anonymized (Top 10)
+axes[0, 0].barh(rf_anon_top['Feature'], rf_anon_top['Importance'], 
                 color='#3498db', alpha=0.8, edgecolor='black')
 axes[0, 0].set_xlabel('Feature Importance (Gini)', fontsize=11)
-axes[0, 0].set_title('Random Forest (Anonymized)\nFeature Importance', fontsize=12, fontweight='bold')
+axes[0, 0].set_title('Random Forest (Anonymized)\nTop 10 Features', fontsize=12, fontweight='bold')
 axes[0, 0].grid(alpha=0.3, axis='x')
 
-# 2. XGBoost - Anonymized
-axes[0, 1].barh(xgb_anon_importance['Feature'], xgb_anon_importance['Importance'], 
+# 2. XGBoost - Anonymized (Top 10)
+axes[0, 1].barh(xgb_anon_top['Feature'], xgb_anon_top['Importance'], 
                 color='#2ecc71', alpha=0.8, edgecolor='black')
 axes[0, 1].set_xlabel('Feature Importance (Gain)', fontsize=11)
-axes[0, 1].set_title('XGBoost (Anonymized)\nFeature Importance', fontsize=12, fontweight='bold')
+axes[0, 1].set_title('XGBoost (Anonymized)\nTop 10 Features', fontsize=12, fontweight='bold')
 axes[0, 1].grid(alpha=0.3, axis='x')
 
-# 3. Random Forest - Non-Anonymized
-axes[1, 0].barh(rf_orig_importance['Feature'], rf_orig_importance['Importance'], 
+# 3. Random Forest - Non-Anonymized (Top 10)
+axes[1, 0].barh(rf_orig_top['Feature'], rf_orig_top['Importance'], 
                 color='#e74c3c', alpha=0.8, edgecolor='black')
 axes[1, 0].set_xlabel('Feature Importance (Gini)', fontsize=11)
-axes[1, 0].set_title('Random Forest (Non-Anonymized)\nFeature Importance', fontsize=12, fontweight='bold')
+axes[1, 0].set_title('Random Forest (Non-Anonymized)\nTop 10 Features', fontsize=12, fontweight='bold')
 axes[1, 0].grid(alpha=0.3, axis='x')
 
-# 4. XGBoost - Non-Anonymized
-axes[1, 1].barh(xgb_orig_importance['Feature'], xgb_orig_importance['Importance'], 
+# 4. XGBoost - Non-Anonymized (Top 10)
+axes[1, 1].barh(xgb_orig_top['Feature'], xgb_orig_top['Importance'], 
                 color='#f39c12', alpha=0.8, edgecolor='black')
 axes[1, 1].set_xlabel('Feature Importance (Gain)', fontsize=11)
-axes[1, 1].set_title('XGBoost (Non-Anonymized)\nFeature Importance', fontsize=12, fontweight='bold')
+axes[1, 1].set_title('XGBoost (Non-Anonymized)\nTop 10 Features', fontsize=12, fontweight='bold')
 axes[1, 1].grid(alpha=0.3, axis='x')
 
-plt.suptitle('Feature Importance Comparison: Anonymized vs Non-Anonymized', fontsize=14, fontweight='bold', y=1.02)
+plt.suptitle('Feature Importance Comparison: Anonymized vs Non-Anonymized (Top 10)', fontsize=14, fontweight='bold', y=1.02)
 plt.tight_layout()
 plt.savefig(f'{output_dir}/14_feature_importance_comparison.png', dpi=300, bbox_inches='tight')
 plt.close()
