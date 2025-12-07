@@ -26,19 +26,20 @@ Using machine learning on privacy-protected data, we identify key factors influe
 ## 🔒 Privacy Protection Techniques
 
 ### 1. **K-Anonymity** (k ≥ 92)
-- Generalized age into 6 age groups (0-17, 18-29, 30-44, 45-59, 60-74, 75+)
+- Generalized age into 5 clinical strata (0-14, 15-24, 25-44, 45-64, 65+)
 - Mapped 81 neighbourhoods to 9 administrative regions (based on Wikipedia geographic data)
 - Ensures each quasi-identifier combination has at least 92 individuals
 
 ### 2. **L-Diversity** (l = 2)
 - Implemented via **value perturbation** (not suppression) - 100% data retention
-- Ensures diversity in sensitive attributes across all 6 protected columns
+- Ensures diversity in sensitive medical + socioeconomic attributes (Hipertension, Diabetes, Alcoholism, Handcap, Scholarship)
+- **Note**: No-show (target variable) is NOT treated as sensitive for L-diversity to preserve target distribution for modeling
 - 108/108 groups achieve l=2 diversity
 
-### 3. **T-Closeness** (t ≤ 0.2)
+### 3. **T-Closeness** (t ≤ 0.2) - Monitoring Only
 - Maintains distribution similarity between groups and global population
 - 108/108 groups comply with t-closeness threshold
-- No-show rate in each group stays within acceptable bounds of global rate
+- **Monitoring only for No-show**: We compute T-closeness on No-show rate to verify target distribution is preserved, but do NOT enforce it (target variable preserved for modeling)
 
 ### 4. **Differential Privacy** (ε ≈ 1.73 nats per attribute)
 - Randomized response applied to 5 sensitive binary attributes:
@@ -46,6 +47,11 @@ Using machine learning on privacy-protected data, we identify key factors influe
   - Scholarship (socioeconomic indicator)
 - Privacy parameters: p = 0.3, q = 0.5
 - Epsilon formula: ε = ln(max(a₀/b₀, a₁/b₁)) using likelihood ratios
+
+### Privacy Technique Interaction
+- **L-diversity and T-closeness are pre-processing checks**; after applying DP, classical k/l/t guarantees may not hold exactly
+- **DP becomes our formal privacy guarantee** - provides mathematically rigorous ε-differential privacy bounds regardless of adversary's background knowledge
+- **Reproducibility**: Global random seed (42) ensures deterministic perturbation and randomized response
 
 ## 🤖 Machine Learning Pipeline
 
@@ -171,10 +177,11 @@ xgboost
 ## 💡 Technical Highlights
 
 ### Privacy Implementation:
-- **Age Generalization**: 6 bins maintaining clinical relevance
+- **Age Generalization**: 5 clinical strata (0-14, 15-24, 25-44, 45-64, 65+) based on healthcare age groupings
 - **Regional Mapping**: Based on official Vitória administrative regions (Wikipedia source)
 - **Randomized Response**: Correct epsilon calculation using likelihood ratios (nats, not bits)
 - **L-Diversity via Perturbation**: No data suppression - 100% record retention
+- **Reproducibility**: Global random seed (RANDOM_SEED = 42) for deterministic results
 
 ### Model Design:
 - **Group-based splitting**: Prevents same patient appearing in train and test sets
@@ -216,12 +223,12 @@ This project demonstrates:
 
 ## 📝 Privacy Guarantees Summary
 
-| Technique | Parameter | Achieved |
-|-----------|-----------|----------|
-| K-Anonymity | k | ≥ 92 |
-| L-Diversity | l | 2 (108/108 groups) |
-| T-Closeness | t | ≤ 0.2 (108/108 groups) |
-| Differential Privacy | ε | ~1.73 nats per attribute |
+| Technique | Parameter | Achieved | Notes |
+|-----------|-----------|----------|-------|
+| K-Anonymity | k | ≥ 92 | After age/region generalization |
+| L-Diversity | l | 2 (108/108 groups) | Medical + socioeconomic attributes only |
+| T-Closeness | t | ≤ 0.2 (108/108 groups) | Monitoring only for No-show |
+| Differential Privacy | ε | ~1.73 nats per attribute | Formal guarantee after DP |
 
 ## 👥 Authors
 

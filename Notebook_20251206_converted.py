@@ -51,7 +51,7 @@ sys.stderr = output_file
 # | Alcoholism | Sensitive (PHI) | HIGH | Medium - health indicator |
 # | Handicap | Sensitive (PHI) | HIGH | Medium - health indicator |
 # | SMS_received | Behavioral | LOW | High - intervention marker |
-# | No-show | Target/Sensitive | MEDIUM | Target variable |
+# | No-show | Target | LOW | Target variable (not treated as sensitive for L-diversity to preserve distribution for modeling) |
 
 # ### Why This Matters
 # We want to predict missed medical appointments while respecting patient privacy. The notebook should read like a story: what data we have, what it looks like, which privacy levers we pull (k/l/t + DP), and how the final model performs.
@@ -75,6 +75,11 @@ from datetime import datetime
 import warnings
 import os
 warnings.filterwarnings('ignore')
+
+# Set global random seed for reproducibility
+# This ensures L-diversity perturbation and DP randomized response are reproducible
+RANDOM_SEED = 42
+np.random.seed(RANDOM_SEED)
 
 # Set display options
 pd.set_option('display.max_columns', None)
@@ -251,9 +256,9 @@ plt.ylabel('Age')
 plt.title('Age Box Plot')
 plt.grid(alpha=0.3)
 plt.tight_layout()
-plt.savefig(f'{output_dir}/01_quick_look_eda.png', dpi=300, bbox_inches='tight')
+plt.savefig(f'{output_dir}/01b_age_distribution_raw.png', dpi=300, bbox_inches='tight')
 plt.close()
-print(f'  Saved: {output_dir}/01_quick_look_eda.png')
+print(f'  Saved: {output_dir}/01b_age_distribution_raw.png')
 
 
 # In[10]:
@@ -283,7 +288,7 @@ for i, (val, count) in enumerate(noshow_counts.items()):
 plt.tight_layout()
 plt.savefig(f'{output_dir}/02_noshow_distribution.png', dpi=300, bbox_inches='tight')
 plt.close()
-print(f"  Saved: {output_dir}/03_noshow_distribution.png")
+print(f"  Saved: {output_dir}/02_noshow_distribution.png")
 
 print(f"\nWarning: Class imbalance: {noshow_pct['No']:.1f}% showed up vs {noshow_pct['Yes']:.1f}% no-show")
 
@@ -348,7 +353,7 @@ for i, (val, name) in enumerate(zip(target_corr.values, target_corr.index)):
 plt.tight_layout()
 plt.savefig(f'{output_dir}/03_correlation_analysis.png', dpi=300, bbox_inches='tight')
 plt.close()
-print(f"  Saved: {output_dir}/04_correlation_analysis.png")
+print(f"  Saved: {output_dir}/03_correlation_analysis.png")
 
 # Print key insights
 print("\nKEY CORRELATION INSIGHTS:")
@@ -472,7 +477,7 @@ plt.suptitle('Detailed Cross-tabulation Analysis', fontsize=16, fontweight='bold
 plt.tight_layout()
 plt.savefig(f'{output_dir}/04_crosstab_analysis.png', dpi=300, bbox_inches='tight')
 plt.close()
-print(f"  Saved: {output_dir}/05_crosstab_analysis.png")
+print(f"  Saved: {output_dir}/04_crosstab_analysis.png")
 
 print("\nKEY FINDINGS FROM CROSS-TABULATION:")
 print("-" * 50)
@@ -515,7 +520,9 @@ print("• Neighbourhood matters - geographic/socioeconomic factors at play")
 # - `Diabetes`: Medical condition (protected health information)
 # - `Alcoholism`: Medical condition (protected health information)
 # - `Handicap`: Disability status (protected information)
-# - `No-show`: Target variable - could reveal health-seeking behavior
+# 
+# **Target Variable (Not treated as sensitive for L-diversity):**
+# - `No-show`: Target variable - NOT treated as sensitive for L-diversity to preserve target distribution for modeling
 # 
 # **Utility Features (Keep and possibly protect):**
 # - `ScheduledDay` and `AppointmentDay`: Temporal features - useful for prediction
@@ -552,19 +559,29 @@ print("• Neighbourhood matters - geographic/socioeconomic factors at play")
 # 
 # ### 3. L-Diversity for Sensitive Attributes
 # Ensure each k-anonymous group has diverse values of:
-# - **No-show** (target variable - sensitive as it reveals behavior)
-# - Medical conditions combined
+# - Medical conditions (Hypertension, Diabetes, Alcoholism, Handicap, Scholarship)
+# - **Note**: No-show (target variable) is NOT treated as sensitive for L-diversity to preserve target distribution for modeling
 # 
-# ### 4. T-Closeness
+# ### 4. T-Closeness (Monitoring Only for No-show)
 # Ensure sensitive attribute distribution in each partition is close to global distribution:
-# - Focus on `No-show` (20% no-show rate should be preserved in partitions)
+# - **L-diversity enforcement**: Applied to medical + socioeconomic attributes (Hypertension, Diabetes, Alcoholism, Handicap, Scholarship)
+# - **T-closeness monitoring for No-show**: We compute T-closeness on No-show rate to *monitor* that the target distribution
+#   is preserved across k-anonymous groups, but we do NOT enforce it or perturb No-show values.
+#   This is purely informational to verify our grouping doesn't distort the target.
 # 
 # ### 5. Differential Privacy for Medical Conditions
 # Apply randomized response to binary medical features:
 # - `Hypertension`, `Diabetes`, `Alcoholism`, `Handicap`
-# - Use p=0.3, q=0.5 for moderate privacy (epsilon ≈ 1.90)
+# - Use p=0.3, q=0.5 for moderate privacy (epsilon ≈ 1.73 nats)
 # 
-# ### 6. Temporal Generalization
+# ### 6. Privacy Technique Interaction
+# **Important**: L-diversity and T-closeness are *pre-processing checks* applied before DP.
+# After applying Differential Privacy (randomized response), the classical k-anonymity, l-diversity,
+# and t-closeness guarantees may not hold exactly because DP further perturbs the values.
+# However, **DP becomes our formal privacy guarantee** - it provides mathematically rigorous
+# privacy bounds (ε-differential privacy) regardless of adversary's background knowledge.
+# 
+# ### 7. Temporal Generalization
 # - Extract useful features: days between scheduling and appointment, day of week, time of day
 # - Remove exact timestamps after feature engineering
 # 
@@ -672,10 +689,12 @@ appt_date = df_protected['AppointmentDay'].dt.normalize()
 # Compute DaysBetween at date granularity
 df_protected['DaysBetween'] = (appt_date - sched_date).dt.days
 
-# Handle true data errors (appointment before scheduling) - set to 0
-num_negative = (df_protected['DaysBetween'] < 0).sum()
-df_protected.loc[df_protected['DaysBetween'] < 0, 'DaysBetween'] = 0
-print(f"Fixed {num_negative} records with negative DaysBetween (appointment before scheduling)")
+# Drop rows with negative DaysBetween (data errors: appointment before scheduling)
+negative_days_mask = df_protected['DaysBetween'] < 0
+num_negative = negative_days_mask.sum()
+df_protected = df_protected[~negative_days_mask].reset_index(drop=True)
+patient_ids = patient_ids[~negative_days_mask].reset_index(drop=True)
+print(f"Dropped {num_negative} rows with negative DaysBetween (data errors)")
 
 # Note: IsSameDay would be 100% redundant with DaysBetween==0 and LeadTime_Category==0
 # So we don't create it as a separate feature
@@ -838,7 +857,7 @@ plt.grid(alpha=0.3, axis='x')
 plt.tight_layout()
 plt.savefig(f'{output_dir}/05_region_distribution.png', dpi=300, bbox_inches='tight')
 plt.close()
-print(f"  Saved: {output_dir}/06_region_distribution.png")
+print(f"  Saved: {output_dir}/05_region_distribution.png")
 
 print(f"\nNeighbourhoods successfully grouped into {df_protected['Region'].nunique()} geographic regions")
 
@@ -905,7 +924,7 @@ axes[1, 1].grid(alpha=0.3, axis='x')
 plt.tight_layout()
 plt.savefig(f'{output_dir}/06_region_characteristics.png', dpi=300, bbox_inches='tight')
 plt.close()
-print(f"  Saved: {output_dir}/07_region_characteristics.png")
+print(f"  Saved: {output_dir}/06_region_characteristics.png")
 
 print("\nGeographic regions preserve meaningful patterns:")
 print(f"  - No-show rates vary from {region_summary['NoShow_Rate'].min():.3f} to {region_summary['NoShow_Rate'].max():.3f}")
@@ -954,7 +973,7 @@ plt.grid(alpha=0.3, axis='y')
 plt.tight_layout()
 plt.savefig(f'{output_dir}/07_age_generalization.png', dpi=300, bbox_inches='tight')
 plt.close()
-print(f"  Saved: {output_dir}/08_age_generalization.png")
+print(f"  Saved: {output_dir}/07_age_generalization.png")
 
 
 # In[19]:
@@ -1001,7 +1020,7 @@ plt.grid(alpha=0.3)
 plt.tight_layout()
 plt.savefig(f'{output_dir}/08_age_distribution.png', dpi=300, bbox_inches='tight')
 plt.close()
-print(f'  Saved: {output_dir}/02_age_distribution.png')
+print(f'  Saved: {output_dir}/08_age_distribution.png')
 
 print(f"\nMinimum k-value: {unique_combinations_gen['count'].min()}")
 print(f"Maximum k-value: {unique_combinations_gen['count'].max()}")
@@ -1054,7 +1073,8 @@ for attr in sensitive_attributes[1:]:
 l_cols = [col for col in diversity_check.columns if col.endswith('_l')]
 diversity_check['min_l_diversity'] = diversity_check[l_cols].min(axis=1)
 
-# Calculate mean no-show rate for visualization
+# Calculate mean no-show rate for visualization/monitoring (NOT for L-diversity enforcement)
+# NoShow is the target variable and is preserved untouched to maintain target distribution
 diversity_check = diversity_check.merge(
     df_protected.groupby(quasi_identifiers_gen)['NoShow_binary'].mean().reset_index().rename(columns={'NoShow_binary': 'noshow_rate'}),
     on=quasi_identifiers_gen
@@ -1319,7 +1339,8 @@ for attr in sensitive_attributes[1:]:
 l_cols_l2 = [col for col in diversity_check_l2.columns if col.endswith('_l')]
 diversity_check_l2['min_l_diversity'] = diversity_check_l2[l_cols_l2].min(axis=1)
 
-# Add noshow_rate for T-closeness analysis
+# Add noshow_rate for T-closeness monitoring (informational only - NoShow is NOT treated as sensitive)
+# We compute this to verify target distribution is preserved in groups, not to enforce L-diversity
 diversity_check_l2 = diversity_check_l2.merge(
     df_protected_l2.groupby(quasi_identifiers_gen)['NoShow_binary'].mean().reset_index().rename(columns={'NoShow_binary': 'noshow_rate'}),
     on=quasi_identifiers_gen
@@ -1592,13 +1613,19 @@ print(f"  • Perturbation rate: {total_perturbations/len(df_protected)*100:.4f}
 # In[21]:
 
 
-# Step 8: Check T-Closeness
-print("\nStep 8: T-Closeness Analysis")
+# Step 8: Check T-Closeness (Informational Monitoring)
+# NOTE: T-closeness is computed on NoShow for MONITORING purposes only.
+# NoShow is NOT treated as a sensitive attribute requiring privacy protection -
+# it is the target variable, preserved untouched to maintain distribution for modeling.
+# This analysis verifies that k-anonymous groups have target distributions close to global.
+print("\nStep 8: T-Closeness Analysis (Monitoring Only)")
 print("="*60)
+print("NOTE: NoShow is NOT treated as sensitive for L-diversity/T-closeness enforcement.")
+print("      This analysis monitors target distribution preservation in groups.")
 
 # Global distribution of No-show
 global_noshow_rate = df_protected['NoShow_binary'].mean()
-print(f"Global No-show rate: {global_noshow_rate:.4f}")
+print(f"\nGlobal No-show rate: {global_noshow_rate:.4f}")
 
 # Calculate distance from global distribution for each group
 diversity_check['distance_from_global'] = abs(diversity_check['noshow_rate'] - global_noshow_rate)
@@ -1637,9 +1664,9 @@ plt.title('Group Size vs T-Closeness')
 plt.legend()
 plt.grid(alpha=0.3)
 plt.tight_layout()
-plt.savefig(f'{output_dir}/02_noshow_distribution.png', dpi=300, bbox_inches='tight')
+plt.savefig(f'{output_dir}/09c_tcloseness_analysis.png', dpi=300, bbox_inches='tight')
 plt.close()
-print(f'  Saved: {output_dir}/03_noshow_distribution.png')
+print(f'  Saved: {output_dir}/09c_tcloseness_analysis.png')
 
 
 # ## Part Three: Implementing Full Data Anonymization
@@ -1648,6 +1675,21 @@ print(f'  Saved: {output_dir}/03_noshow_distribution.png')
 # 1. **K-anonymity, L-diversity, T-closeness** (already applied through generalization)
 # 2. **Differential Privacy** using randomized response for medical conditions
 # 3. **Final anonymized dataset creation** ready for machine learning
+# 
+# ### Important: Privacy Technique Interaction
+# 
+# **L-diversity and T-closeness are pre-processing checks**; after applying Differential Privacy,
+# classical k/l/t guarantees may not hold exactly because DP further perturbs the values.
+# However, **DP becomes our formal privacy guarantee** - it provides mathematically rigorous
+# ε-differential privacy bounds regardless of adversary's background knowledge.
+# 
+# The pipeline order is:
+# 1. Apply k-anonymity (generalization) → verifiable k-value
+# 2. Apply l-diversity (perturbation for diversity) → verified before DP
+# 3. Monitor t-closeness on No-show → informational only, not enforced
+# 4. Apply DP (randomized response) → formal ε-DP guarantee (ε ≈ 1.73 nats)
+# 
+# After DP, we rely on the ε-DP guarantee rather than re-verifying k/l/t.
 # 
 # ### Differential Privacy Implementation
 # 
