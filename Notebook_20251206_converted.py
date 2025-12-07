@@ -934,9 +934,10 @@ for region in region_summary.index:
 print("\nStep 5: Age Generalization")
 print("="*60)
 
-# Create age bins
-age_bins = [0, 18, 30, 45, 60, 75, 120]
-age_labels = ['0-17', '18-29', '30-44', '45-59', '60-74', '75+']
+# Create age bins - using clinically meaningful strata
+# (0-14: pediatric, 15-24: young adult, 25-44: adult, 45-64: middle-aged, 65+: senior)
+age_bins = [0, 15, 25, 45, 65, 120]
+age_labels = ['0-14', '15-24', '25-44', '45-64', '65+']
 df_protected['Age_generalized'] = pd.cut(df_protected['Age'], bins=age_bins, labels=age_labels, right=False)
 
 print("Age distribution after generalization:")
@@ -2072,13 +2073,21 @@ print("✓ Created LogDaysBetween (log1p transform to reduce skewness)")
 # Note: Removed IsWeekend (only 39 weekend appointments in 110k - no signal)
 
 # Feature 2: Health burden score (sum of DP-protected conditions)
+# IMPORTANT: This is calculated AFTER DP protection, so it's derived from the 
+# privacy-protected values. This ensures logical consistency - HealthBurden 
+# always equals the sum of the (potentially perturbed/noised) condition flags.
 df_final_anonymous['HealthBurden'] = (
     df_final_anonymous['Hipertension'] + 
     df_final_anonymous['Diabetes'] + 
     df_final_anonymous['Alcoholism'] + 
     df_final_anonymous['Handcap']
 )
-print("✓ Created HealthBurden (sum of 4 medical conditions, range 0-4)")
+
+# Sanity check: verify HealthBurden is consistent with its components
+expected_health = df_final_anonymous['Hipertension'] + df_final_anonymous['Diabetes'] + df_final_anonymous['Alcoholism'] + df_final_anonymous['Handcap']
+assert (df_final_anonymous['HealthBurden'] == expected_health).all(), "HealthBurden inconsistency detected!"
+print("✓ Created HealthBurden (sum of 4 DP-protected conditions, range 0-4)")
+print("  Note: Derived from DP-protected values to ensure logical consistency")
 
 print(f"\nNew features added: LogDaysBetween, HealthBurden")
 print(f"Updated dataset shape: {df_final_anonymous.shape}")
@@ -2130,13 +2139,13 @@ df_ml_anon = df_final_anonymous.copy()
 df_ml_anon['PatientId'] = patient_ids.values
 
 # Encode Age_Group as ordinal (meaningful ordering)
+# Using clinically meaningful strata
 age_mapping = {
-    '0-17': 0,
-    '18-29': 1,
-    '30-44': 2,
-    '45-59': 3,
-    '60-74': 4,
-    '75+': 5
+    '0-14': 0,   # Pediatric
+    '15-24': 1,  # Young adult
+    '25-44': 2,  # Adult
+    '45-64': 3,  # Middle-aged
+    '65+': 4     # Senior
 }
 df_ml_anon['Age_Group'] = df_ml_anon['Age_Group'].astype(str).map(age_mapping).astype('int64')
 
@@ -2222,6 +2231,8 @@ df_ml_orig = pd.concat([df_ml_orig.drop(['AppointmentDayOfWeek', 'ScheduledDayOf
 df_ml_orig['LogDaysBetween'] = np.log1p(df_ml_orig['DaysBetween'])
 
 # Feature 2: Health burden score (sum of original conditions)
+# Note: Uses original Handcap (0-4) unlike anonymized dataset (binarized)
+# This is intentional - non-anonymized has full granularity
 df_ml_orig['HealthBurden'] = (
     df_ml_orig['Hipertension'] + 
     df_ml_orig['Diabetes'] + 

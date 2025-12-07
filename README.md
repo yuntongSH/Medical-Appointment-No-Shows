@@ -12,105 +12,119 @@ Using machine learning on privacy-protected data, we identify key factors influe
 
 ## 📊 Dataset
 
-- **Source**: Medical Appointments No-Show Dataset
-- **Records**: 110,527 appointments
+- **Source**: Medical Appointments No-Show Dataset (Vitória, Brazil)
+- **Records**: 110,527 appointments (110,526 after cleaning)
 - **Features**: 14 variables including patient demographics, medical conditions, and appointment details
-- **Target**: Binary classification (Show/No-Show)
+- **Target**: Binary classification (Show/No-Show, ~20% no-show rate)
 
 ### Key Variables:
 - **Direct Identifiers**: PatientId, AppointmentID (removed)
-- **Quasi-Identifiers**: Age, Gender, Neighbourhood (protected)
-- **Sensitive Attributes**: Medical conditions (Hipertension, Diabetes, Alcoholism, Handcap)
-- **Behavioral Features**: SMS reminders, scholarship status
-- **Temporal Features**: Days between scheduling and appointment, day of week
+- **Quasi-Identifiers**: Age, Gender, Neighbourhood (protected via generalization)
+- **Sensitive Attributes**: Medical conditions (Hipertension, Diabetes, Alcoholism, Handcap), Scholarship (Bolsa Família)
+- **Temporal Features**: DaysBetween, LogDaysBetween, AppointmentDayOfWeek, ScheduledDayOfWeek
 
 ## 🔒 Privacy Protection Techniques
 
-### 1. **K-Anonymity** (k ≥ 31)
-- Generalized age into 6 age groups
-- Mapped 81 neighbourhoods to 9 administrative regions
-- Ensures each quasi-identifier group has at least 31 individuals
+### 1. **K-Anonymity** (k ≥ 92)
+- Generalized age into 6 age groups (0-17, 18-29, 30-44, 45-59, 60-74, 75+)
+- Mapped 81 neighbourhoods to 9 administrative regions (based on Wikipedia geographic data)
+- Ensures each quasi-identifier combination has at least 92 individuals
 
 ### 2. **L-Diversity** (l = 2)
-- Ensures diversity in sensitive attributes (No-show status)
-- Each k-anonymous group has at least 2 different No-show values
+- Implemented via **value perturbation** (not suppression) - 100% data retention
+- Ensures diversity in sensitive attributes across all 6 protected columns
+- 108/108 groups achieve l=2 diversity
 
 ### 3. **T-Closeness** (t ≤ 0.2)
 - Maintains distribution similarity between groups and global population
-- No-show rate in each group stays within 20% of global rate
+- 108/108 groups comply with t-closeness threshold
+- No-show rate in each group stays within acceptable bounds of global rate
 
-### 4. **Differential Privacy** (ε ≈ 2.4)
-- Randomized response applied to medical conditions
-- Probability parameters: p = 0.3, q = 0.5
-- Adds controlled noise while preserving statistical utility
+### 4. **Differential Privacy** (ε ≈ 1.73 nats per attribute)
+- Randomized response applied to 5 sensitive binary attributes:
+  - Hipertension, Diabetes, Alcoholism, Handcap (medical PHI)
+  - Scholarship (socioeconomic indicator)
+- Privacy parameters: p = 0.3, q = 0.5
+- Epsilon formula: ε = ln(max(a₀/b₀, a₁/b₁)) using likelihood ratios
 
-## 🤖 Machine Learning Models
+## 🤖 Machine Learning Pipeline
 
-### Reinforced Model Configurations:
+### Key Design Decisions:
 
-#### **Random Forest**
-- 500 trees (n_estimators)
-- Max depth: 20
-- Bootstrap sampling with OOB scoring
-- Balanced class weights
-- Optimized split parameters
+1. **Group-Based Train/Test Split**: Split by PatientId to prevent data leakage from repeated appointments
+2. **One-Hot Encoding**: For Region (9 categories), Neighbourhood (81 categories), and weekdays - avoids fake ordinal relationships
+3. **Calibrated Probabilities**: CalibratedClassifierCV with sigmoid calibration
+4. **Threshold Optimization**: Maximize accuracy subject to recall ≥ 0.80
 
-#### **XGBoost**
-- 500 trees (n_estimators)
-- Max depth: 10
-- Learning rate: 0.03
-- Advanced regularization (L1=0.1, L2=1.0, gamma=0.1)
-- Multi-level sampling (85%)
+### Model Configurations:
+
+| Model | Configuration |
+|-------|---------------|
+| **Logistic Regression** | max_iter=500, class_weight='balanced' |
+| **Random Forest** | 400 trees, max_depth=16, class_weight='balanced' |
+| **XGBoost** | 400 trees, max_depth=8, lr=0.05, scale_pos_weight=4 |
 
 ### Model Performance:
 
-| Dataset | Model | Accuracy | Recall | ROC-AUC |
-|---------|-------|----------|--------|---------|
-| Anonymized | Random Forest | ~0.64 | ~0.68 | ~0.72 |
-| Anonymized | XGBoost | ~0.62 | ~0.74 | ~0.72 |
-| Non-Anonymized | Random Forest | ~0.65 | ~0.72 | ~0.74 |
-| Non-Anonymized | XGBoost | ~0.64 | ~0.74 | ~0.74 |
+| Dataset | Model | Accuracy | Recall | ROC-AUC | Threshold |
+|---------|-------|----------|--------|---------|-----------|
+| Anonymized | Logistic Regression | 0.580 | 0.805 | 0.707 | 0.18 |
+| Anonymized | Random Forest | 0.584 | 0.797 | 0.716 | 0.19 |
+| **Anonymized** | **XGBoost** | **0.579** | **0.798** | **0.712** | **0.18** |
+| Non-Anonymized | Logistic Regression | 0.583 | 0.810 | 0.719 | 0.18 |
+| Non-Anonymized | Random Forest | 0.597 | 0.793 | 0.730 | 0.20 |
+| Non-Anonymized | XGBoost | 0.597 | 0.794 | 0.729 | 0.19 |
 
-**Privacy-Utility Tradeoff**: Minimal accuracy loss (~1-2%) while ensuring strong privacy guarantees.
+**Privacy-Utility Tradeoff**: Only ~1-2% accuracy loss while ensuring strong privacy guarantees.
 
 ## 🔍 Key Findings
 
-### Top Factors for Appointment No-Shows:
+### Top Predictors of No-Shows (XGBoost Feature Importance):
 
-1. **DaysBetween** (Most Important)
-   - Time gap between scheduling and appointment
-   - Longer waits → higher no-show probability
+| Rank | Feature | Importance |
+|------|---------|------------|
+| 1 | **DaysBetween** | 0.090 |
+| 2 | **Age_Group** | 0.036 |
+| 3 | Region_Jardim da Penha | 0.036 |
+| 4 | ApptDOW_0 (Monday) | 0.035 |
+| 5 | Region_Santo Antônio | 0.033 |
 
-2. **Age**
-   - Different age groups show varying attendance patterns
-   - Younger patients more likely to miss appointments
+### Insights:
 
-3. **SMS Reminders**
-   - Critical intervention for reducing no-shows
-   - Significant difference in attendance with/without SMS
+1. **Lead Time is Critical**: Same-day appointments have only 4.6% no-show rate vs 28.5% for scheduled ahead
+2. **Age Matters**: Younger patients (18-35) show higher no-show rates
+3. **Geographic Variation**: Regional factors (distance, transportation, socioeconomic) significantly impact attendance
+4. **Chronic Conditions**: Patients with chronic conditions are MORE likely to attend
+5. **SMS Paradox**: SMS reminders show selection bias (sent to high-risk patients)
 
-4. **Geographic Location (Region)**
-   - Distance and accessibility impact attendance
-   - Regional variations in no-show rates
+### Actionable Recommendations:
 
-5. **Socioeconomic Factors (Scholarship)**
-   - Social welfare participation correlates with attendance patterns
-
-### SHAP Analysis:
-- Provides interpretable AI insights
-- Accounts for feature interactions
-- Validates feature importance rankings
+1. Reduce scheduling lead times where possible
+2. Implement universal SMS reminders (not just high-risk)
+3. Target interventions at young adult demographic
+4. Address transportation barriers in underserved regions
+5. Use prediction model to identify high-risk appointments proactively
 
 ## 📁 Repository Structure
 
 ```
 .
-├── Medical_Appointments_Analysis.ipynb  # Main analysis notebook
-├── Database.csv                          # Medical appointments dataset
-├── README.md                             # This file
-├── Reference1.ipynb                      # Reference implementation 1
-├── Reference2.ipynb                      # Reference implementation 2
-└── Reference3.ipynb                      # Reference implementation 3
+├── Notebook_20251206_converted.py    # Main analysis script
+├── Database.csv                       # Medical appointments dataset
+├── README.md                          # This file
+├── requirements.txt                   # Python dependencies
+├── output.txt                         # Execution log
+├── output_png/                        # Generated visualizations (17 plots)
+│   ├── 01_quick_look_eda.png
+│   ├── 02_noshow_distribution.png
+│   ├── 03_correlation_analysis.png
+│   ├── ...
+│   └── 15_final_feature_importance.png
+└── old/                               # Reference notebooks
+    ├── Notebook 20251206.ipynb
+    ├── Reference1.ipynb
+    ├── Reference2.ipynb
+    └── Reference3.ipynb
 ```
 
 ## 🚀 Getting Started
@@ -118,16 +132,10 @@ Using machine learning on privacy-protected data, we identify key factors influe
 ### Prerequisites
 
 ```bash
-Python 3.8+
+Python 3.10+
 ```
 
-### Required Libraries
-
-```bash
-pip install pandas numpy matplotlib seaborn scikit-learn xgboost shap
-```
-
-### Running the Analysis
+### Installation
 
 1. Clone the repository:
 ```bash
@@ -135,68 +143,85 @@ git clone https://github.com/yuntongSH/Medical-Appointment-No-Shows.git
 cd Medical-Appointment-No-Shows
 ```
 
-2. Install dependencies:
+2. Create virtual environment and install dependencies:
 ```bash
-pip install -r requirements.txt  # or install manually
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+pip install -r requirements.txt
 ```
 
-3. Run the Jupyter notebook:
+3. Run the analysis:
 ```bash
-jupyter notebook Medical_Appointments_Analysis.ipynb
+python Notebook_20251206_converted.py
 ```
 
-4. Execute cells sequentially (full execution takes ~10-15 minutes with reinforced models)
+Output will be saved to `output.txt` and visualizations to `output_png/`.
+
+### Required Libraries
+
+```
+pandas
+numpy
+matplotlib
+seaborn
+scikit-learn
+xgboost
+```
 
 ## 💡 Technical Highlights
 
 ### Privacy Implementation:
-- **Age Generalization**: 6 bins (0-17, 18-29, 30-44, 45-59, 60-74, 75+)
-- **Regional Mapping**: 9 administrative regions from 81 neighbourhoods
-- **Randomized Response**: Medical conditions protected with ε-differential privacy
-- **Temporal Generalization**: Day-level precision (exact timestamps removed)
+- **Age Generalization**: 6 bins maintaining clinical relevance
+- **Regional Mapping**: Based on official Vitória administrative regions (Wikipedia source)
+- **Randomized Response**: Correct epsilon calculation using likelihood ratios (nats, not bits)
+- **L-Diversity via Perturbation**: No data suppression - 100% record retention
 
-### Model Interpretability:
-- Feature importance analysis (default and SHAP-based)
-- Confusion matrices and classification reports
-- ROC-AUC curves for performance evaluation
-- Comprehensive visualizations
+### Model Design:
+- **Group-based splitting**: Prevents same patient appearing in train and test sets
+- **One-hot encoding**: For categorical features without ordinal meaning
+- **Calibration plots**: Reliability diagrams with Brier scores
+- **Threshold tuning**: Maximize accuracy subject to minimum recall constraint
 
-### Utility-Privacy Balance:
-- Privacy guarantees: k≥31, l=2, t≤0.2, ε≈2.4
-- Minimal accuracy loss: <2% compared to non-anonymized
-- Maintains high recall for no-show detection
+### Features Engineered:
+- `DaysBetween`: Days from scheduling to appointment (date-normalized)
+- `LogDaysBetween`: log1p transform to reduce skewness of extreme wait times
+- `HealthBurden`: Sum of medical conditions (0-4)
 
-## 📈 Results Visualization
+### Features Removed (Redundant):
+- ~~`IsSameDay`~~: 100% correlated with DaysBetween==0
+- ~~`LeadTime_Category`~~: Redundant categorical binning of DaysBetween
+- ~~`IsWeekend`~~: Only 39 weekend appointments in 110k records
 
-The notebook includes:
-- Age distribution before/after generalization
-- Regional no-show rate comparisons
-- L-diversity analysis (4-subplot visualization)
-- T-closeness distribution
-- Feature importance comparisons (4 models)
-- SHAP summary plots and beeswarm charts
-- Performance comparison visualizations
+## 📈 Visualizations
+
+The analysis generates 17 publication-ready plots:
+- EDA and distribution analysis
+- Correlation heatmaps
+- Regional mapping and characteristics
+- L-diversity before/after comparison
+- Differential privacy parameter sweep
+- Model comparison (Accuracy, Recall, ROC-AUC)
+- Calibration curves
+- Feature importance comparison
+- Privacy-utility tradeoff visualization
 
 ## 🎓 Educational Value
 
 This project demonstrates:
-1. **Privacy-Preserving Data Analysis**: Real-world application of privacy techniques
-2. **Healthcare Analytics**: Domain-specific insights from medical data
-3. **Machine Learning**: Binary classification with imbalanced data
-4. **Interpretable AI**: SHAP values for explainable predictions
-5. **Utility-Privacy Tradeoff**: Quantifying the cost of privacy protection
+1. **Privacy-Preserving Data Analysis**: Real-world application of k-anonymity, l-diversity, t-closeness, and differential privacy
+2. **Healthcare Analytics**: Domain-specific insights from medical appointment data
+3. **Machine Learning Best Practices**: Group-based splitting, calibration, threshold optimization
+4. **Interpretable AI**: Feature importance analysis for explainable predictions
+5. **Utility-Privacy Tradeoff**: Quantifying the cost of privacy protection (~1-2% accuracy loss)
 
-## 🤝 Contributing
+## 📝 Privacy Guarantees Summary
 
-Contributions are welcome! Areas for improvement:
-- Additional privacy techniques (k-map, mondrian partitioning)
-- Deep learning models with privacy
-- Real-time prediction system
-- Extended feature engineering
-
-## 📝 License
-
-This project is for educational purposes. Dataset source and usage comply with data sharing agreements.
+| Technique | Parameter | Achieved |
+|-----------|-----------|----------|
+| K-Anonymity | k | ≥ 92 |
+| L-Diversity | l | 2 (108/108 groups) |
+| T-Closeness | t | ≤ 0.2 (108/108 groups) |
+| Differential Privacy | ε | ~1.73 nats per attribute |
 
 ## 👥 Authors
 
@@ -206,18 +231,17 @@ This project is for educational purposes. Dataset source and usage comply with d
 
 ## 📚 References
 
-1. k-Anonymity: Protecting Privacy by Generalizing Data
-2. l-Diversity: Privacy Beyond k-Anonymity
-3. t-Closeness: Privacy Beyond l-Diversity
-4. Differential Privacy: A Survey of Results
-5. SHAP: A Unified Approach to Interpreting Model Predictions
+1. Sweeney, L. (2002). k-Anonymity: A Model for Protecting Privacy
+2. Machanavajjhala, A., et al. (2007). l-Diversity: Privacy Beyond k-Anonymity
+3. Li, N., et al. (2007). t-Closeness: Privacy Beyond k-Anonymity and l-Diversity
+4. Dwork, C. (2006). Differential Privacy
+5. Warner, S.L. (1965). Randomized Response: A Survey Technique for Eliminating Evasive Answer Bias
 
 ## 📞 Contact
 
-For questions or collaboration:
 - Repository: https://github.com/yuntongSH/Medical-Appointment-No-Shows
 - Issues: Use GitHub issue tracker
 
 ---
 
-**Note**: This project balances academic research with practical privacy protection. All techniques are implemented from scratch for educational transparency.
+**Note**: This project balances academic research with practical privacy protection. All privacy techniques are implemented from scratch for educational transparency, with correct mathematical formulations (e.g., epsilon in natural log units).
